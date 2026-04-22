@@ -43,6 +43,21 @@
             border-radius: 50%;
             flex-shrink: 0;
         }
+        #tooltip {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-family: sans-serif;
+            font-size: 0.78em;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255,255,255,0.18);
+            display: none;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -50,6 +65,8 @@
         <h1>3D Solar System</h1>
         <p>LMB: Rotate &nbsp;|&nbsp; Scroll: Zoom &nbsp;|&nbsp; RMB: Pan</p>
     </div>
+
+    <div id="tooltip"></div>
 
     <div id="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#887766"></div>Mercury</div>
@@ -181,52 +198,52 @@
 
         // ── Bright stars — real Hipparcos catalog (RA h, Dec °, Vmag, B-V) ────
         // Converted to 3D: x=r·cos(dec)·cos(ra), y=r·sin(dec), z=r·cos(dec)·sin(ra)
+        // [RA_h, Dec_deg, Vmag, B-V, name]
         const catalog = [
-            [6.753,-16.716,-1.46, 0.00], // Sirius       α CMa
-            [6.399,-52.696,-0.74, 0.15], // Canopus      α Car
-            [14.660,-60.835,-0.27, 0.71],// Rigil Kent.  α Cen
-            [14.261, 19.182,-0.05, 1.23],// Arcturus     α Boo
-            [18.616, 38.783, 0.03, 0.00],// Vega         α Lyr
-            [5.278,  45.998, 0.08, 0.80],// Capella      α Aur
-            [5.242,  -8.202, 0.13,-0.03],// Rigel        β Ori
-            [7.655,   5.225, 0.34, 0.42],// Procyon      α CMi
-            [1.628, -57.237, 0.45,-0.16],// Achernar     α Eri
-            [5.919,   7.407, 0.50, 1.85],// Betelgeuse   α Ori
-            [14.064,-60.374, 0.61,-0.23],// Hadar        β Cen
-            [19.846,  8.868, 0.76, 0.22],// Altair       α Aql
-            [12.443,-63.099, 0.76,-0.24],// Acrux        α Cru
-            [4.599,  16.509, 0.87, 1.54],// Aldebaran    α Tau
-            [16.490,-26.432, 0.96, 1.83],// Antares      α Sco
-            [13.420,-11.161, 1.04,-0.24],// Spica        α Vir
-            [7.755,  28.026, 1.14, 1.00],// Pollux       β Gem
-            [22.961,-29.622, 1.16, 0.09],// Fomalhaut    α PsA
-            [20.691, 45.280, 1.25, 0.09],// Deneb        α Cyg
-            [10.139, 11.967, 1.35,-0.11],// Regulus      α Leo
-            [6.977, -28.972, 1.50,-0.21],// Adhara       ε CMa
-            [7.577,  31.888, 1.58, 0.03],// Castor       α Gem
-            [17.560,-37.103, 1.63,-0.22],// Shaula       λ Sco
-            [5.419,   6.349, 1.64,-0.22],// Bellatrix    γ Ori
-            [5.438,  28.608, 1.65,-0.13],// Elnath       β Tau
-            [5.605,  -1.202, 1.70,-0.19],// Alnilam      ε Ori
-            [2.530,  89.264, 1.97, 0.60],// Polaris      α UMi
-            [3.405,  49.861, 1.79, 0.48],// Mirfak       α Per
-            [11.062, 61.751, 1.79, 1.07],// Dubhe        α UMa
-            [12.900, 55.960, 1.77,-0.02],// Alioth       ε UMa
-            [13.792, 49.313, 1.86,-0.19],// Alkaid       η UMa
-            [18.402,-34.384, 1.85, 0.42],// Kaus Aust.   ε Sgr
-            [16.811,-69.028, 1.92, 1.44],// Atria        α TrA
-            [20.427,-56.735, 1.94,-0.19],// Peacock      α Pav
-            [22.137,-46.961, 1.74,-0.13],// Al Nair      α Gru
-            [9.460,  -8.658, 1.99, 1.44],// Alphard      α Hya
-            [11.818, 14.572, 2.14, 0.48],// Denebola     β Leo
-            [6.063,  20.212, 2.00,-0.20],// Alhena       γ Gem
-            [17.943, 51.489, 2.23, 0.00],// Eltanin      γ Dra
-            [19.512, 27.960, 2.72, 0.40],// Albireo      β Cyg
-            [0.944, -57.837, 2.24, 0.27],// Ankaa        α Phe
-            [2.295,  57.815, 2.27, 0.48],// Schedar      α Cas
-            [10.332, -5.911, 2.37,-0.07],// Sextans
-            [12.519,-57.114, 1.63, 1.60],// Gacrux       γ Cru
-            [8.158, -47.337, 1.78,-0.22],// Regor        γ Vel
+            [6.753,-16.716,-1.46, 0.00,'Sirius (α CMa)'],
+            [6.399,-52.696,-0.74, 0.15,'Canopus (α Car)'],
+            [14.660,-60.835,-0.27, 0.71,'Rigil Kentaurus (α Cen)'],
+            [14.261, 19.182,-0.05, 1.23,'Arcturus (α Boo)'],
+            [18.616, 38.783, 0.03, 0.00,'Vega (α Lyr)'],
+            [5.278,  45.998, 0.08, 0.80,'Capella (α Aur)'],
+            [5.242,  -8.202, 0.13,-0.03,'Rigel (β Ori)'],
+            [7.655,   5.225, 0.34, 0.42,'Procyon (α CMi)'],
+            [1.628, -57.237, 0.45,-0.16,'Achernar (α Eri)'],
+            [5.919,   7.407, 0.50, 1.85,'Betelgeuse (α Ori)'],
+            [14.064,-60.374, 0.61,-0.23,'Hadar (β Cen)'],
+            [19.846,  8.868, 0.76, 0.22,'Altair (α Aql)'],
+            [12.443,-63.099, 0.76,-0.24,'Acrux (α Cru)'],
+            [4.599,  16.509, 0.87, 1.54,'Aldebaran (α Tau)'],
+            [16.490,-26.432, 0.96, 1.83,'Antares (α Sco)'],
+            [13.420,-11.161, 1.04,-0.24,'Spica (α Vir)'],
+            [7.755,  28.026, 1.14, 1.00,'Pollux (β Gem)'],
+            [22.961,-29.622, 1.16, 0.09,'Fomalhaut (α PsA)'],
+            [20.691, 45.280, 1.25, 0.09,'Deneb (α Cyg)'],
+            [10.139, 11.967, 1.35,-0.11,'Regulus (α Leo)'],
+            [6.977, -28.972, 1.50,-0.21,'Adhara (ε CMa)'],
+            [7.577,  31.888, 1.58, 0.03,'Castor (α Gem)'],
+            [17.560,-37.103, 1.63,-0.22,'Shaula (λ Sco)'],
+            [5.419,   6.349, 1.64,-0.22,'Bellatrix (γ Ori)'],
+            [5.438,  28.608, 1.65,-0.13,'Elnath (β Tau)'],
+            [5.605,  -1.202, 1.70,-0.19,'Alnilam (ε Ori)'],
+            [2.530,  89.264, 1.97, 0.60,'Polaris (α UMi)'],
+            [3.405,  49.861, 1.79, 0.48,'Mirfak (α Per)'],
+            [11.062, 61.751, 1.79, 1.07,'Dubhe (α UMa)'],
+            [12.900, 55.960, 1.77,-0.02,'Alioth (ε UMa)'],
+            [13.792, 49.313, 1.86,-0.19,'Alkaid (η UMa)'],
+            [18.402,-34.384, 1.85, 0.42,'Kaus Australis (ε Sgr)'],
+            [16.811,-69.028, 1.92, 1.44,'Atria (α TrA)'],
+            [20.427,-56.735, 1.94,-0.19,'Peacock (α Pav)'],
+            [22.137,-46.961, 1.74,-0.13,'Al Nair (α Gru)'],
+            [9.460,  -8.658, 1.99, 1.44,'Alphard (α Hya)'],
+            [11.818, 14.572, 2.14, 0.48,'Denebola (β Leo)'],
+            [6.063,  20.212, 2.00,-0.20,'Alhena (γ Gem)'],
+            [17.943, 51.489, 2.23, 0.00,'Eltanin (γ Dra)'],
+            [19.512, 27.960, 2.72, 0.40,'Albireo (β Cyg)'],
+            [0.944, -57.837, 2.24, 0.27,'Ankaa (α Phe)'],
+            [2.295,  57.815, 2.27, 0.48,'Schedar (α Cas)'],
+            [12.519,-57.114, 1.63, 1.60,'Gacrux (γ Cru)'],
+            [8.158, -47.337, 1.78,-0.22,'Regor (γ Vel)'],
         ];
 
         function bvToRGB(bv) {
@@ -242,9 +259,9 @@
         const R = 3800;
         const catPos = new Float32Array(catalog.length * 3);
         const catCol = new Float32Array(catalog.length * 3);
-        const catSizes = new Float32Array(catalog.length);
+        const starNames = [];
         for (let i = 0; i < catalog.length; i++) {
-            const [ra_h, dec_d, vmag, bv] = catalog[i];
+            const [ra_h, dec_d, vmag, bv, name] = catalog[i];
             const ra  = ra_h * 15 * Math.PI / 180;
             const dec = dec_d * Math.PI / 180;
             catPos[i*3]   = R * Math.cos(dec) * Math.cos(ra);
@@ -252,16 +269,16 @@
             catPos[i*3+2] = R * Math.cos(dec) * Math.sin(ra);
             const [r, g, b] = bvToRGB(bv);
             catCol[i*3] = r; catCol[i*3+1] = g; catCol[i*3+2] = b;
-            // Brighter stars (lower vmag) → bigger point
-            catSizes[i] = Math.max(1.5, 5.5 - vmag * 1.2);
+            starNames.push(name);
         }
         const catGeo = new THREE.BufferGeometry();
         catGeo.setAttribute('position', new THREE.BufferAttribute(catPos, 3));
         catGeo.setAttribute('color',    new THREE.BufferAttribute(catCol, 3));
-        scene.add(new THREE.Points(catGeo, new THREE.PointsMaterial({
+        const starPoints = new THREE.Points(catGeo, new THREE.PointsMaterial({
             size: 3, vertexColors: true, sizeAttenuation: false,
             transparent: true, opacity: 0.95
-        })));
+        }));
+        scene.add(starPoints);
 
         // ── Known galaxies ────────────────────────────────────────────────────
         // Sprites at real RA/Dec positions on the skybox sphere
@@ -339,6 +356,7 @@
         ];
 
         const GR = 3600;
+        const galaxySprites = []; // { sprite, name } for raycasting
         for (const g of galaxyData) {
             const ra  = g.ra_h * 15 * Math.PI / 180;
             const dec = g.dec  * Math.PI / 180;
@@ -354,6 +372,7 @@
             );
             sprite.scale.set(g.scale, g.scale, 1);
             scene.add(sprite);
+            galaxySprites.push({ sprite, name: g.name });
         }
 
         // Planet texture generators
@@ -582,13 +601,68 @@
 
             scene.add(mesh);
             return {
-                mesh, a, b, c, incRad,
+                mesh, name: d.name, a, b, c, incRad,
                 speed: BASE_SPEED / d.period,
                 angle: Math.random() * Math.PI * 2
             };
         }
 
         planetsData.forEach(d => planets.push(createPlanet(d)));
+
+        // ── Hover tooltips (raycasting) ───────────────────────────────────────
+        const tooltip  = document.getElementById('tooltip');
+        const raycaster = new THREE.Raycaster();
+        raycaster.params.Points = { threshold: 8 };
+        const mouse = new THREE.Vector2(-9999, -9999);
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            let label = null;
+
+            // 1. Planets + Sun
+            const meshTargets = [sun, ...planets.map(p => p.mesh)];
+            const meshNames   = ['Sun', ...planets.map(p => p.name)];
+            const meshHits = raycaster.intersectObjects(meshTargets, true);
+            if (meshHits.length) {
+                const idx = meshTargets.indexOf(meshHits[0].object);
+                if (idx !== -1) label = meshNames[idx];
+                // children (clouds, atmosphere) — find parent planet
+                if (!label) {
+                    for (let pi = 0; pi < planets.length; pi++) {
+                        if (planets[pi].mesh.children.includes(meshHits[0].object)) {
+                            label = planets[pi].name; break;
+                        }
+                    }
+                }
+            }
+
+            // 2. Galaxies
+            if (!label) {
+                const gHits = raycaster.intersectObjects(galaxySprites.map(g => g.sprite));
+                if (gHits.length) {
+                    const hit = galaxySprites.find(g => g.sprite === gHits[0].object);
+                    if (hit) label = hit.name;
+                }
+            }
+
+            // 3. Catalog stars (Points)
+            if (!label) {
+                const sHits = raycaster.intersectObject(starPoints);
+                if (sHits.length) label = starNames[sHits[0].index];
+            }
+
+            if (label) {
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.clientX + 16) + 'px';
+                tooltip.style.top  = (e.clientY - 8)  + 'px';
+                tooltip.textContent = label;
+            } else {
+                tooltip.style.display = 'none';
+            }
+        });
 
         // Animation
         let time = 0;
