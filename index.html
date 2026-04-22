@@ -263,6 +263,99 @@
             transparent: true, opacity: 0.95
         })));
 
+        // ── Known galaxies ────────────────────────────────────────────────────
+        // Sprites at real RA/Dec positions on the skybox sphere
+
+        function galaxyTex(type, tilt) {
+            return canvasTex((ctx, s) => {
+                ctx.translate(s / 2, s / 2);
+                ctx.rotate(tilt || 0);
+                if (type === 'spiral') {
+                    // Disk
+                    const disk = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.45);
+                    disk.addColorStop(0,   'rgba(255,245,210,0.85)');
+                    disk.addColorStop(0.2, 'rgba(230,200,150,0.35)');
+                    disk.addColorStop(1,   'rgba(0,0,0,0)');
+                    ctx.fillStyle = disk;
+                    ctx.beginPath(); ctx.ellipse(0, 0, s*0.45, s*0.22, 0, 0, Math.PI*2); ctx.fill();
+                    // Two spiral arms
+                    for (let arm = 0; arm < 2; arm++) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = 'rgba(220,200,160,0.4)';
+                        ctx.lineWidth = s * 0.05;
+                        ctx.lineCap = 'round';
+                        for (let t = 0; t <= 1; t += 0.02) {
+                            const a = arm * Math.PI + t * Math.PI * 1.3;
+                            const r = t * s * 0.43;
+                            const x = Math.cos(a) * r, y = Math.sin(a) * r * 0.45;
+                            t === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                    }
+                    // Bright core
+                    const core = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.1);
+                    core.addColorStop(0, 'rgba(255,250,230,0.95)');
+                    core.addColorStop(1, 'rgba(255,220,150,0)');
+                    ctx.fillStyle = core;
+                    ctx.beginPath(); ctx.arc(0, 0, s * 0.1, 0, Math.PI * 2); ctx.fill();
+                } else if (type === 'elliptical') {
+                    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.42);
+                    g.addColorStop(0,   'rgba(255,240,200,0.9)');
+                    g.addColorStop(0.35,'rgba(230,200,150,0.4)');
+                    g.addColorStop(1,   'rgba(0,0,0,0)');
+                    ctx.fillStyle = g;
+                    ctx.beginPath(); ctx.ellipse(0, 0, s*0.42, s*0.3, 0, 0, Math.PI*2); ctx.fill();
+                } else { // irregular (Magellanic Clouds)
+                    const g = ctx.createRadialGradient(0, -s*0.05, 0, 0, 0, s * 0.46);
+                    g.addColorStop(0,   'rgba(210,225,255,0.85)');
+                    g.addColorStop(0.5, 'rgba(180,200,245,0.35)');
+                    g.addColorStop(1,   'rgba(0,0,0,0)');
+                    ctx.fillStyle = g;
+                    ctx.beginPath(); ctx.ellipse(0, 0, s*0.46, s*0.38, 0.4, 0, Math.PI*2); ctx.fill();
+                    // Star-forming knots
+                    for (let k = 0; k < 4; k++) {
+                        const kx = (Math.random()-0.5)*s*0.28, ky = (Math.random()-0.5)*s*0.28;
+                        const kg = ctx.createRadialGradient(kx, ky, 0, kx, ky, s*0.07);
+                        kg.addColorStop(0, 'rgba(200,215,255,0.45)');
+                        kg.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = kg;
+                        ctx.beginPath(); ctx.arc(kx, ky, s*0.07, 0, Math.PI*2); ctx.fill();
+                    }
+                }
+            }, 256);
+        }
+
+        const galaxyData = [
+            { name: 'Andromeda (M31)',  ra_h: 0.712,  dec:  41.27,  type: 'spiral',    tilt:  0.5, scale: 24, opacity: 1.0 },
+            { name: 'Triangulum (M33)', ra_h: 1.564,  dec:  30.66,  type: 'spiral',    tilt:  1.2, scale: 11, opacity: 0.65 },
+            { name: 'LMC',              ra_h: 5.392,  dec: -69.75,  type: 'irregular', tilt:  0.3, scale: 30, opacity: 0.9 },
+            { name: 'SMC',              ra_h: 0.878,  dec: -72.80,  type: 'irregular', tilt: -0.5, scale: 19, opacity: 0.8 },
+            { name: "Bode's (M81)",     ra_h: 9.926,  dec:  69.07,  type: 'spiral',    tilt:  0.8, scale: 10, opacity: 0.6 },
+            { name: 'Centaurus A',      ra_h: 13.426, dec: -43.02,  type: 'elliptical',tilt:  0.4, scale: 10, opacity: 0.6 },
+            { name: 'Sombrero (M104)',  ra_h: 12.666, dec: -11.62,  type: 'spiral',    tilt:  0.1, scale:  8, opacity: 0.55 },
+            { name: 'Whirlpool (M51)',  ra_h: 13.498, dec:  47.19,  type: 'spiral',    tilt:  0.2, scale:  8, opacity: 0.5 },
+            { name: 'M87',              ra_h: 12.514, dec:  12.39,  type: 'elliptical',tilt:  0.0, scale:  7, opacity: 0.5 },
+            { name: 'Sculptor (NGC253)',ra_h:  0.792, dec: -25.29,  type: 'spiral',    tilt:  1.1, scale: 10, opacity: 0.55 },
+        ];
+
+        const GR = 3600;
+        for (const g of galaxyData) {
+            const ra  = g.ra_h * 15 * Math.PI / 180;
+            const dec = g.dec  * Math.PI / 180;
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: galaxyTex(g.type, g.tilt),
+                blending: THREE.AdditiveBlending,
+                transparent: true, opacity: g.opacity, depthWrite: false
+            }));
+            sprite.position.set(
+                GR * Math.cos(dec) * Math.cos(ra),
+                GR * Math.sin(dec),
+                GR * Math.cos(dec) * Math.sin(ra)
+            );
+            sprite.scale.set(g.scale, g.scale, 1);
+            scene.add(sprite);
+        }
+
         // Planet texture generators
         const textures = {
             mercury: canvasTex((ctx, s) => {
