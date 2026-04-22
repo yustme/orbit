@@ -1154,17 +1154,28 @@
             for (const sc of scObjects) {
                 const isSelected = sc.name === selectedSC;
                 const dimmed     = selectedSC !== null && !isSelected;
-                // trajectory line
                 sc.line.material.opacity = dimmed ? 0.05 : (isSelected ? 0.65 : 0.22);
-                // sprite scale
                 const s = dimmed ? 1.0 : (isSelected ? 3.5 : 2.2);
                 sc.sprite.scale.set(s, s, 1);
-                // legend item classes
                 if (sc.legendItem) {
                     sc.legendItem.classList.toggle('sc-selected', isSelected);
                     sc.legendItem.classList.toggle('sc-dimmed', dimmed);
                 }
             }
+
+            // Adjust slider range to selected spacecraft's mission window
+            const sel = scObjects.find(s => s.name === selectedSC);
+            if (sel) {
+                slider.min = Math.floor(sel.launchDay);
+                slider.max = Math.ceil(sel.endDay);
+                // Clamp simDay into range
+                if (simDay < sel.launchDay) simDay = sel.launchDay;
+                if (simDay > sel.endDay)    simDay = sel.launchDay; // start from launch
+            } else {
+                slider.min = MIN_DAY;
+                slider.max = MAX_DAY;
+            }
+            syncUI();
         }
 
         const scLegendEl = document.getElementById('sc-legend');
@@ -1262,7 +1273,9 @@
             // Advance simulation time
             if (playing) {
                 simDay += simSpeed;
-                if (simDay > MAX_DAY) simDay = MIN_DAY;
+                const loopMax = parseFloat(slider.max);
+                const loopMin = parseFloat(slider.min);
+                if (simDay > loopMax) simDay = loopMin;
                 syncUI();
             }
 
