@@ -676,6 +676,7 @@
         }
 
         document.getElementById('back-btn').addEventListener('click', flyBack);
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && flyState.inGalaxyView) flyBack(); });
 
         // Galaxy legend — clickable items
         const galaxyLegendEl = document.getElementById('galaxy-legend');
@@ -1010,8 +1011,8 @@
 
             // Smooth camera fly-to animation
             if (flyState.active) {
-                camera.position.lerp(flyState.camTarget, 0.04);
-                controls.target.lerp(flyState.ctrlTarget, 0.04);
+                camera.position.lerp(flyState.camTarget, 0.015);
+                controls.target.lerp(flyState.ctrlTarget, 0.015);
                 if (camera.position.distanceTo(flyState.camTarget) < 5) {
                     flyState.active = false;
                     if (flyState.onComplete) { flyState.onComplete(); flyState.onComplete = null; }
