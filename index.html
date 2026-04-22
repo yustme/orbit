@@ -245,8 +245,11 @@
         <div class="legend-item"><div class="legend-dot" style="background:#3366cc"></div>Neptune</div>
         <div class="legend-section">Galaxies</div>
         <div id="galaxy-legend"></div>
-        <div class="legend-section" style="margin-top:10px">Spacecraft</div>
-        <div id="sc-legend"></div>
+        <div class="legend-section" style="margin-top:10px; display:flex; align-items:center; gap:8px; pointer-events:all;">
+            Spacecraft
+            <button id="sc-toggle" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25); color:#888; border-radius:3px; font-size:0.8em; padding:1px 7px; cursor:pointer; letter-spacing:1px;">OFF</button>
+        </div>
+        <div id="sc-legend" style="opacity:0.3; pointer-events:none;"></div>
     </div>
 
     <script src="trajectories_data.js"></script>
@@ -1121,6 +1124,29 @@
             );
         }
 
+        // Spacecraft on/off toggle (default: off)
+        let scEnabled = false;
+
+        function setScEnabled(on) {
+            scEnabled = on;
+            const btn = document.getElementById('sc-toggle');
+            const leg = document.getElementById('sc-legend');
+            btn.textContent = on ? 'ON' : 'OFF';
+            btn.style.color = on ? '#aaddff' : '#888';
+            btn.style.borderColor = on ? 'rgba(100,180,255,0.4)' : 'rgba(255,255,255,0.25)';
+            leg.style.opacity = on ? '1' : '0.3';
+            leg.style.pointerEvents = on ? 'all' : 'none';
+            // hide all spacecraft when toggled off
+            if (!on) {
+                for (const sc of scObjects) {
+                    sc.sprite.visible = false;
+                    sc.line.visible = false;
+                }
+            }
+        }
+
+        document.getElementById('sc-toggle').addEventListener('click', () => setScEnabled(!scEnabled));
+
         // Spacecraft legend with selection
         let selectedSC = null; // name of selected spacecraft, or null
 
@@ -1266,14 +1292,18 @@
                 }
             }
 
-            // Spacecraft positions
-            for (const sc of scObjects) {
-                const active = simDay >= sc.launchDay && simDay <= sc.endDay;
-                if (sc.sprite.visible !== active) sc.sprite.visible = active;
-                if (sc.line.visible   !== active) sc.line.visible   = active;
-                if (active) {
-                    const pos = interpSC(sc.points, simDay);
-                    if (pos) sc.sprite.position.copy(pos);
+            // Spacecraft positions (only when enabled)
+            if (scEnabled) {
+                for (const sc of scObjects) {
+                    const active = simDay >= sc.launchDay && simDay <= sc.endDay
+                                   && (selectedSC === null || selectedSC === sc.name);
+                    if (sc.sprite.visible !== active) sc.sprite.visible = active;
+                    const lineVis = simDay >= sc.launchDay && simDay <= sc.endDay;
+                    if (sc.line.visible !== lineVis) sc.line.visible = lineVis;
+                    if (active) {
+                        const pos = interpSC(sc.points, simDay);
+                        if (pos) sc.sprite.position.copy(pos);
+                    }
                 }
             }
 
