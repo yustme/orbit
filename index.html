@@ -29,7 +29,9 @@
             z-index: 10;
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 4px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .legend-item {
             display: flex;
@@ -41,6 +43,32 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .legend-section {
+            font-size: 0.75em;
+            letter-spacing: 2px;
+            opacity: 0.4;
+            text-transform: uppercase;
+            margin-top: 8px;
+            margin-bottom: 2px;
+        }
+        .legend-galaxy {
+            pointer-events: all;
+            cursor: pointer;
+            opacity: 0.75;
+            transition: opacity 0.15s;
+        }
+        .legend-galaxy:hover {
+            opacity: 1;
+            color: #aaddff;
+        }
+        .legend-galaxy-icon {
+            width: 12px;
+            height: 7px;
+            border-radius: 50%;
+            border: 1px solid rgba(180,210,255,0.7);
+            transform: rotate(-20deg);
             flex-shrink: 0;
         }
         #tooltip {
@@ -69,6 +97,7 @@
     <div id="tooltip"></div>
 
     <div id="legend">
+        <div class="legend-section">Planets</div>
         <div class="legend-item"><div class="legend-dot" style="background:#887766"></div>Mercury</div>
         <div class="legend-item"><div class="legend-dot" style="background:#ddaa55"></div>Venus</div>
         <div class="legend-item"><div class="legend-dot" style="background:#4488ff"></div>Earth</div>
@@ -77,6 +106,8 @@
         <div class="legend-item"><div class="legend-dot" style="background:#ddcc88"></div>Saturn</div>
         <div class="legend-item"><div class="legend-dot" style="background:#55ccdd"></div>Uranus</div>
         <div class="legend-item"><div class="legend-dot" style="background:#3366cc"></div>Neptune</div>
+        <div class="legend-section">Galaxies</div>
+        <div id="galaxy-legend"></div>
     </div>
 
     <script type="importmap">
@@ -365,14 +396,35 @@
                 blending: THREE.AdditiveBlending,
                 transparent: true, opacity: g.opacity, depthWrite: false
             }));
-            sprite.position.set(
+            sprite.scale.set(g.scale, g.scale, 1);
+            const worldPos = new THREE.Vector3(
                 GR * Math.cos(dec) * Math.cos(ra),
                 GR * Math.sin(dec),
                 GR * Math.cos(dec) * Math.sin(ra)
             );
-            sprite.scale.set(g.scale, g.scale, 1);
+            sprite.position.copy(worldPos);
             scene.add(sprite);
-            galaxySprites.push({ sprite, name: g.name });
+            galaxySprites.push({ sprite, name: g.name, worldPos });
+        }
+
+        // Galaxy legend — clickable items that fly camera toward each galaxy
+        const flyState = { active: false, camTarget: new THREE.Vector3(), ctrlTarget: new THREE.Vector3() };
+
+        function flyTo(worldPos) {
+            const dir = worldPos.clone().normalize();
+            // Position camera 120 units along galaxy direction, look at that point in the sky
+            flyState.camTarget.copy(dir).multiplyScalar(120);
+            flyState.ctrlTarget.copy(dir).multiplyScalar(3400);
+            flyState.active = true;
+        }
+
+        const galaxyLegendEl = document.getElementById('galaxy-legend');
+        for (const g of galaxySprites) {
+            const item = document.createElement('div');
+            item.className = 'legend-item legend-galaxy';
+            item.innerHTML = `<div class="legend-galaxy-icon"></div>${g.name}`;
+            item.addEventListener('click', () => flyTo(g.worldPos));
+            galaxyLegendEl.appendChild(item);
         }
 
         // Planet texture generators
@@ -694,6 +746,13 @@
                     );
                     p.mesh.userData.moon.rotation.y += 0.005;
                 }
+            }
+
+            // Smooth camera fly-to animation
+            if (flyState.active) {
+                camera.position.lerp(flyState.camTarget, 0.04);
+                controls.target.lerp(flyState.ctrlTarget, 0.04);
+                if (camera.position.distanceTo(flyState.camTarget) < 1) flyState.active = false;
             }
 
             controls.update();
