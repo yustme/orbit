@@ -63,6 +63,19 @@
             opacity: 1;
             color: #aaddff;
         }
+        .legend-sc {
+            pointer-events: all;
+            cursor: pointer;
+            opacity: 0.65;
+            transition: opacity 0.15s, color 0.15s;
+        }
+        .legend-sc:hover { opacity: 1; }
+        .legend-sc.sc-selected {
+            opacity: 1;
+            color: #fff;
+            font-weight: bold;
+        }
+        .legend-sc.sc-dimmed { opacity: 0.2; }
         .legend-galaxy-icon {
             width: 12px;
             height: 7px;
@@ -1108,14 +1121,38 @@
             );
         }
 
-        // Spacecraft legend
+        // Spacecraft legend with selection
+        let selectedSC = null; // name of selected spacecraft, or null
+
+        function applyScSelection() {
+            for (const sc of scObjects) {
+                const isSelected = sc.name === selectedSC;
+                const dimmed     = selectedSC !== null && !isSelected;
+                // trajectory line
+                sc.line.material.opacity = dimmed ? 0.05 : (isSelected ? 0.65 : 0.22);
+                // sprite scale
+                const s = dimmed ? 1.0 : (isSelected ? 3.5 : 2.2);
+                sc.sprite.scale.set(s, s, 1);
+                // legend item classes
+                if (sc.legendItem) {
+                    sc.legendItem.classList.toggle('sc-selected', isSelected);
+                    sc.legendItem.classList.toggle('sc-dimmed', dimmed);
+                }
+            }
+        }
+
         const scLegendEl = document.getElementById('sc-legend');
         for (const sc of scObjects) {
             const item = document.createElement('div');
-            item.className = 'legend-item';
+            item.className = 'legend-item legend-sc';
             item.style.fontSize = '0.7em';
             const dot = sc.status === 'active' ? sc.color : sc.color + '88';
             item.innerHTML = `<div class="legend-dot" style="background:${dot}"></div>${sc.name}`;
+            item.addEventListener('click', () => {
+                selectedSC = (selectedSC === sc.name) ? null : sc.name;
+                applyScSelection();
+            });
+            sc.legendItem = item;
             scLegendEl.appendChild(item);
         }
 
