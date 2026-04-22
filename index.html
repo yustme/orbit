@@ -71,6 +71,64 @@
             transform: rotate(-20deg);
             flex-shrink: 0;
         }
+        #galaxy-info {
+            position: absolute;
+            bottom: 24px;
+            left: 20px;
+            color: #fff;
+            font-family: sans-serif;
+            font-size: 0.8em;
+            background: rgba(0,0,0,0.75);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            padding: 16px 20px;
+            max-width: 320px;
+            display: none;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .ginfo-name {
+            font-size: 1.15em;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            color: #aaddff;
+            text-transform: uppercase;
+        }
+        .ginfo-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 5px;
+            opacity: 0.85;
+        }
+        .ginfo-row span { opacity: 0.45; flex-shrink: 0; }
+        .ginfo-fact {
+            margin-top: 10px;
+            font-style: italic;
+            opacity: 0.6;
+            font-size: 0.88em;
+            line-height: 1.55;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 8px;
+        }
+        #back-btn {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            background: rgba(0,0,0,0.7);
+            color: #aaddff;
+            border: 1px solid rgba(100,180,255,0.3);
+            border-radius: 4px;
+            padding: 8px 22px;
+            font-family: sans-serif;
+            font-size: 0.78em;
+            letter-spacing: 2px;
+            cursor: pointer;
+            z-index: 20;
+        }
+        #back-btn:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
         #tooltip {
             position: absolute;
             pointer-events: none;
@@ -95,6 +153,8 @@
     </div>
 
     <div id="tooltip"></div>
+    <div id="galaxy-info"></div>
+    <button id="back-btn">&#8592; Back to Solar System</button>
 
     <div id="legend">
         <div class="legend-section">Planets</div>
@@ -407,25 +467,225 @@
             galaxySprites.push({ sprite, name: g.name, worldPos });
         }
 
-        // Galaxy legend — clickable items that fly camera toward each galaxy
-        const flyState = { active: false, camTarget: new THREE.Vector3(), ctrlTarget: new THREE.Vector3() };
+        // ── Galaxy facts ─────────────────────────────────────────────────────
+        const galaxyFacts = {
+            'Andromeda (M31)':   { type: 'Barred Spiral (SBb)',         distance: '2.537 million ly', diameter: '220,000 ly', stars: '~1 trillion',   fact: 'Largest galaxy in the Local Group. On a collision course with the Milky Way — they will merge in ~4.5 billion years.' },
+            'Triangulum (M33)':  { type: 'Spiral (SAcd)',               distance: '2.73 million ly',  diameter: '60,000 ly',  stars: '~40 billion',   fact: 'Third-largest member of the Local Group, barely visible to the naked eye under perfect dark-sky conditions.' },
+            'LMC':               { type: 'Irregular / Disrupted Spiral',distance: '163,000 ly',       diameter: '14,000 ly',  stars: '~30 billion',   fact: 'Satellite of the Milky Way. Contains the Tarantula Nebula — the most active star-forming region in the Local Group.' },
+            'SMC':               { type: 'Irregular Dwarf (Im)',        distance: '200,000 ly',       diameter: '7,000 ly',   stars: '~3 billion',    fact: 'Named after Ferdinand Magellan. Has a notably higher proportion of young blue stars than the Milky Way.' },
+            "Bode's (M81)":      { type: 'Grand Design Spiral (SAab)',  distance: '11.8 million ly',  diameter: '90,000 ly',  stars: '~250 billion',  fact: 'One of the brightest galaxies in the sky. Its spiral arms are being deformed by gravitational interaction with M82.' },
+            'Centaurus A':       { type: 'Elliptical / Radio Galaxy',   distance: '13.7 million ly',  diameter: '97,000 ly',  stars: '~100 billion',  fact: 'One of the closest active galactic nuclei. A 55-million-solar-mass black hole shoots relativistic jets thousands of light-years long.' },
+            'Sombrero (M104)':   { type: 'Unbarred Spiral (SA(s)a)',    distance: '31.1 million ly',  diameter: '49,000 ly',  stars: '~100 billion',  fact: 'Named for its distinctive shape. Seen nearly edge-on, its broad dust lane and bright bulge are visible in small telescopes.' },
+            'Whirlpool (M51)':   { type: 'Grand Design Spiral (Sbc)',   distance: '23 million ly',    diameter: '76,000 ly',  stars: '~100 billion',  fact: 'First galaxy classified as a spiral (1845). Companion NGC 5195 is distorting its arms through tidal forces.' },
+            'M87':               { type: 'Giant Elliptical (E0pec)',    distance: '53.5 million ly',  diameter: '240,000 ly', stars: '~1 trillion',   fact: 'Home of the first black hole ever photographed (2019, Event Horizon Telescope). Its plasma jet extends 5,000 light-years.' },
+            'Sculptor (NGC253)': { type: 'Intermediate Spiral (SABc)',  distance: '11.4 million ly',  diameter: '90,000 ly',  stars: '~200 billion',  fact: 'One of the brightest galaxies visible from Earth. An intense starburst galaxy forming new stars at a remarkable rate.' },
+        };
 
-        function flyTo(worldPos) {
-            const dir = worldPos.clone().normalize();
-            // Position camera 120 units along galaxy direction, look at that point in the sky
-            flyState.camTarget.copy(dir).multiplyScalar(120);
-            flyState.ctrlTarget.copy(dir).multiplyScalar(3400);
-            flyState.active = true;
+        // Seeded PRNG (mulberry32)
+        function mulberry32(seed) {
+            return function() {
+                seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+                let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
         }
 
+        // Build a galaxy particle system in local space (disk in XZ plane)
+        function createGalaxyPoints(type, seed) {
+            const rng = mulberry32(seed);
+            const R = 52; // galaxy radius in scene units
+            const count = (type === 'elliptical') ? 7500 : (type === 'irregular') ? 5500 : 11000;
+            const pos = new Float32Array(count * 3);
+            const col = new Float32Array(count * 3);
+
+            if (type === 'spiral') {
+                // Central bulge — warm yellow/orange stars
+                const nB = Math.floor(count * 0.28);
+                for (let i = 0; i < nB; i++) {
+                    const r = Math.pow(rng(), 2.2) * R * 0.23;
+                    const th = rng() * Math.PI * 2, ph = Math.acos(2*rng()-1);
+                    pos[i*3]   = r * Math.sin(ph) * Math.cos(th);
+                    pos[i*3+1] = r * Math.sin(ph) * Math.sin(th) * 0.42;
+                    pos[i*3+2] = r * Math.cos(ph);
+                    const w = rng();
+                    col[i*3] = 1.0; col[i*3+1] = 0.74+w*0.16; col[i*3+2] = 0.28+w*0.28;
+                }
+                // Two logarithmic spiral arms — blue/white young stars
+                const nA = Math.floor(count * 0.56);
+                for (let i = 0; i < nA; i++) {
+                    const arm = rng() > 0.5 ? 0 : 1;
+                    const t = Math.pow(rng(), 0.55);
+                    const angle = arm * Math.PI + t * Math.PI * 2.3;
+                    const r = R * 0.07 + t * R * 0.92;
+                    const scatter = r * 0.11 * (1 - t * 0.35);
+                    const ii = nB + i;
+                    pos[ii*3]   = r * Math.cos(angle) + (rng()-0.5)*scatter*2;
+                    pos[ii*3+1] = (rng()-0.5) * R * 0.033;
+                    pos[ii*3+2] = r * Math.sin(angle) + (rng()-0.5)*scatter*2;
+                    const b = rng();
+                    col[ii*3] = 0.52+b*0.48; col[ii*3+1] = 0.70+b*0.28; col[ii*3+2] = 1.0;
+                }
+                // Diffuse disk haze
+                const dStart = nB + nA;
+                for (let i = dStart; i < count; i++) {
+                    const r = Math.pow(rng(), 0.62) * R;
+                    const th = rng() * Math.PI * 2;
+                    pos[i*3]   = r * Math.cos(th);
+                    pos[i*3+1] = (rng()-0.5) * R * 0.038;
+                    pos[i*3+2] = r * Math.sin(th);
+                    col[i*3] = 0.78; col[i*3+1] = 0.80; col[i*3+2] = 0.92;
+                }
+            } else if (type === 'elliptical') {
+                // de Vaucouleurs-like profile — old yellow/red stars
+                for (let i = 0; i < count; i++) {
+                    const r = Math.pow(rng(), 2.8) * R;
+                    const th = rng() * Math.PI * 2, ph = Math.acos(2*rng()-1);
+                    pos[i*3]   = r * Math.sin(ph) * Math.cos(th);
+                    pos[i*3+1] = r * Math.sin(ph) * Math.sin(th) * 0.60;
+                    pos[i*3+2] = r * Math.cos(ph);
+                    const w = rng();
+                    col[i*3] = 1.0; col[i*3+1] = 0.58+w*0.32; col[i*3+2] = 0.12+w*0.38;
+                }
+            } else { // irregular — multiple star-forming clumps, blue-white stars
+                const clumps = [
+                    { ox: 0,       oz: 0,       r: R*0.50, frac: 0.38 },
+                    { ox:  R*0.36, oz:  R*0.24, r: R*0.28, frac: 0.28 },
+                    { ox: -R*0.28, oz: -R*0.20, r: R*0.22, frac: 0.20 },
+                    { ox:  R*0.10, oz: -R*0.36, r: R*0.18, frac: 0.14 },
+                ];
+                let idx = 0;
+                for (const c of clumps) {
+                    const n = Math.floor(count * c.frac);
+                    for (let i = 0; i < n && idx < count; i++, idx++) {
+                        const r = Math.pow(rng(), 1.4) * c.r;
+                        const th = rng() * Math.PI * 2, ph = Math.acos(2*rng()-1);
+                        pos[idx*3]   = c.ox + r * Math.sin(ph) * Math.cos(th);
+                        pos[idx*3+1] = r * Math.sin(ph) * Math.sin(th) * 0.18;
+                        pos[idx*3+2] = c.oz + r * Math.cos(ph);
+                        const b = rng();
+                        col[idx*3] = 0.38+b*0.62; col[idx*3+1] = 0.62+b*0.36; col[idx*3+2] = 1.0;
+                    }
+                }
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+            const mat = new THREE.PointsMaterial({
+                size: 1.8, vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                transparent: true, opacity: 0.90,
+                depthWrite: false, sizeAttenuation: false,
+            });
+            const pts = new THREE.Points(geo, mat);
+            pts.visible = false;
+            return pts;
+        }
+
+        // Build one model per galaxy, oriented so disk faces the approaching camera
+        const galaxyModels = [];
+        galaxyData.forEach((g, i) => {
+            const model = createGalaxyPoints(g.type, i * 1337 + 42);
+            model.position.copy(galaxySprites[i].worldPos);
+
+            // Disk normal (Y) pointing toward origin (where camera comes from)
+            const viewDir = galaxySprites[i].worldPos.clone().normalize();
+            const q = new THREE.Quaternion().setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0), viewDir.clone().negate()
+            );
+            model.setRotationFromQuaternion(q);
+
+            // Sombrero is famous for being seen nearly edge-on
+            if (g.name === 'Sombrero (M104)') model.rotateX(Math.PI * 0.44);
+
+            // Add a bit of random tilt for visual variety
+            const rng2 = mulberry32(i * 997 + 55);
+            if (g.type === 'spiral') {
+                model.rotateX((rng2()-0.5) * 0.50);
+                model.rotateZ((rng2()-0.5) * 0.50);
+            } else {
+                model.rotateX((rng2()-0.5) * 0.70);
+                model.rotateZ((rng2()-0.5) * 0.70);
+            }
+            scene.add(model);
+            galaxyModels.push(model);
+        });
+
+        // ── Camera fly state ──────────────────────────────────────────────────
+        const flyState = {
+            active: false,
+            camTarget: new THREE.Vector3(),
+            ctrlTarget: new THREE.Vector3(),
+            onComplete: null,
+            inGalaxyView: false,
+            currentGalaxyIdx: -1,
+            savedCamPos: new THREE.Vector3(0, 55, 110),
+            savedCtrlTarget: new THREE.Vector3(0, 0, 0),
+        };
+
+        function flyTo(worldPos, galaxyIdx) {
+            // Save solar system viewpoint only on first galaxy jump
+            if (!flyState.inGalaxyView) {
+                flyState.savedCamPos.copy(camera.position);
+                flyState.savedCtrlTarget.copy(controls.target);
+            }
+            // Hide previous galaxy when switching
+            if (flyState.currentGalaxyIdx >= 0 && flyState.currentGalaxyIdx !== galaxyIdx) {
+                galaxyModels[flyState.currentGalaxyIdx].visible = false;
+            }
+            document.getElementById('galaxy-info').style.display = 'none';
+
+            const dir = worldPos.clone().normalize();
+            flyState.camTarget.copy(dir).multiplyScalar(3300);
+            flyState.ctrlTarget.copy(worldPos);
+            flyState.active = true;
+            flyState.currentGalaxyIdx = galaxyIdx;
+            controls.maxDistance = 5000;
+
+            flyState.onComplete = () => {
+                galaxyModels[galaxyIdx].visible = true;
+                const g = galaxyData[galaxyIdx];
+                const f = galaxyFacts[g.name];
+                const el = document.getElementById('galaxy-info');
+                el.innerHTML =
+                    `<div class="ginfo-name">${g.name}</div>` +
+                    `<div class="ginfo-row"><span>Type</span>${f.type}</div>` +
+                    `<div class="ginfo-row"><span>Distance</span>${f.distance}</div>` +
+                    `<div class="ginfo-row"><span>Diameter</span>${f.diameter}</div>` +
+                    `<div class="ginfo-row"><span>Stars</span>${f.stars}</div>` +
+                    `<div class="ginfo-fact">${f.fact}</div>`;
+                el.style.display = 'block';
+                document.getElementById('back-btn').style.display = 'block';
+                flyState.inGalaxyView = true;
+            };
+        }
+
+        function flyBack() {
+            if (flyState.currentGalaxyIdx >= 0) {
+                galaxyModels[flyState.currentGalaxyIdx].visible = false;
+            }
+            document.getElementById('galaxy-info').style.display = 'none';
+            document.getElementById('back-btn').style.display = 'none';
+            flyState.inGalaxyView = false;
+            flyState.currentGalaxyIdx = -1;
+            flyState.camTarget.copy(flyState.savedCamPos);
+            flyState.ctrlTarget.copy(flyState.savedCtrlTarget);
+            flyState.active = true;
+            flyState.onComplete = () => { controls.maxDistance = 400; };
+        }
+
+        document.getElementById('back-btn').addEventListener('click', flyBack);
+
+        // Galaxy legend — clickable items
         const galaxyLegendEl = document.getElementById('galaxy-legend');
-        for (const g of galaxySprites) {
+        galaxySprites.forEach((g, i) => {
             const item = document.createElement('div');
             item.className = 'legend-item legend-galaxy';
             item.innerHTML = `<div class="legend-galaxy-icon"></div>${g.name}`;
-            item.addEventListener('click', () => flyTo(g.worldPos));
+            item.addEventListener('click', () => flyTo(g.worldPos, i));
             galaxyLegendEl.appendChild(item);
-        }
+        });
 
         // Planet texture generators
         const textures = {
@@ -752,7 +1012,10 @@
             if (flyState.active) {
                 camera.position.lerp(flyState.camTarget, 0.04);
                 controls.target.lerp(flyState.ctrlTarget, 0.04);
-                if (camera.position.distanceTo(flyState.camTarget) < 1) flyState.active = false;
+                if (camera.position.distanceTo(flyState.camTarget) < 5) {
+                    flyState.active = false;
+                    if (flyState.onComplete) { flyState.onComplete(); flyState.onComplete = null; }
+                }
             }
 
             controls.update();
