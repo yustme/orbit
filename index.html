@@ -897,29 +897,29 @@
         // e = eccentricity, inc = inclination to ecliptic (°), period = sidereal years
         const BASE_SPEED = 0.01; // Earth rad/frame
         const planetsData = [
-            { name: 'Mercury', tex: textures.mercury, size: 0.55, distance: 11,  e: 0.2056, inc: 7.00,  period: 0.2408, tilt: 0.03,  roughness: 0.9, metalness: 0.1, orbitColor: 0x887766 },
-            { name: 'Venus',   tex: textures.venus,   size: 1.05, distance: 17,  e: 0.0068, inc: 3.39,  period: 0.6152, tilt: 3.10,  roughness: 0.6, metalness: 0,   orbitColor: 0xddaa55 },
-            { name: 'Earth',   isEarth: true,          size: 1.15, distance: 24,  e: 0.0167, inc: 0.00,  period: 1.0000, tilt: 0.41,                                  orbitColor: 0x4488ff },
-            { name: 'Mars',    tex: textures.mars,    size: 0.75, distance: 34,  e: 0.0934, inc: 1.85,  period: 1.8808, tilt: 0.44,  roughness: 0.9, metalness: 0,   orbitColor: 0xcc5533 },
-            { name: 'Jupiter', tex: textures.jupiter, size: 3.4,  distance: 53,  e: 0.0489, inc: 1.30,  period: 11.862, tilt: 0.05,  roughness: 0.7, metalness: 0,   orbitColor: 0xcc9944 },
-            { name: 'Saturn',  tex: textures.saturn,  size: 2.9,  distance: 72,  e: 0.0565, inc: 2.49,  period: 29.457, tilt: 0.47,  roughness: 0.7, metalness: 0,   hasRing: true, orbitColor: 0xddcc88 },
-            { name: 'Uranus',  tex: textures.uranus,  size: 1.9,  distance: 88,  e: 0.0463, inc: 0.77,  period: 84.011, tilt: 1.71,  roughness: 0.3, metalness: 0,   icy: true, orbitColor: 0x55ccdd },
-            { name: 'Neptune', tex: textures.neptune, size: 1.8,  distance: 105, e: 0.0097, inc: 1.77,  period: 164.79, tilt: 0.49,  roughness: 0.3, metalness: 0,   icy: true, orbitColor: 0x3366cc }
+            { name: 'Mercury', tex: textures.mercury, size: 0.55, distance: 11,  e: 0.2056, inc: 7.00,  Omega:  48.331, omega:  29.125, period: 0.2408, tilt: 0.03,  roughness: 0.9, metalness: 0.1, orbitColor: 0x887766 },
+            { name: 'Venus',   tex: textures.venus,   size: 1.05, distance: 17,  e: 0.0068, inc: 3.39,  Omega:  76.680, omega:  54.884, period: 0.6152, tilt: 3.10,  roughness: 0.6, metalness: 0,   orbitColor: 0xddaa55 },
+            { name: 'Earth',   isEarth: true,          size: 1.15, distance: 24,  e: 0.0167, inc: 0.00,  Omega:   0.000, omega: 102.937, period: 1.0000, tilt: 0.41,                                  orbitColor: 0x4488ff },
+            { name: 'Mars',    tex: textures.mars,    size: 0.75, distance: 34,  e: 0.0934, inc: 1.85,  Omega:  49.558, omega: 286.502, period: 1.8808, tilt: 0.44,  roughness: 0.9, metalness: 0,   orbitColor: 0xcc5533 },
+            { name: 'Jupiter', tex: textures.jupiter, size: 3.4,  distance: 53,  e: 0.0489, inc: 1.30,  Omega: 100.464, omega:  14.331, period: 11.862, tilt: 0.05,  roughness: 0.7, metalness: 0,   orbitColor: 0xcc9944 },
+            { name: 'Saturn',  tex: textures.saturn,  size: 2.9,  distance: 72,  e: 0.0565, inc: 2.49,  Omega: 113.665, omega:  93.058, period: 29.457, tilt: 0.47,  roughness: 0.7, metalness: 0,   hasRing: true, orbitColor: 0xddcc88 },
+            { name: 'Uranus',  tex: textures.uranus,  size: 1.9,  distance: 88,  e: 0.0463, inc: 0.77,  Omega:  74.006, omega: 173.005, period: 84.011, tilt: 1.71,  roughness: 0.3, metalness: 0,   icy: true, orbitColor: 0x55ccdd },
+            { name: 'Neptune', tex: textures.neptune, size: 1.8,  distance: 105, e: 0.0097, inc: 1.77,  Omega: 131.784, omega:  48.123, period: 164.79, tilt: 0.49,  roughness: 0.3, metalness: 0,   icy: true, orbitColor: 0x3366cc }
         ];
 
         const planets = [];
 
-        // Draws a real Keplerian ellipse: sun at focus, inclination applied
-        function orbitLine(a, e, incDeg, color) {
-            const b   = a * Math.sqrt(1 - e * e);
-            const c   = a * e; // focus offset
-            const inc = incDeg * Math.PI / 180;
+        // Draws a real Keplerian ellipse in ecliptic J2000 frame using full Euler rotation (Omega, inc, omega)
+        // orbitalToScene is defined later (after PLANET_KEPLER), call deferred via arrow fn to avoid hoisting issue
+        function orbitLine(a, e, incDeg, OmegaDeg, omegaDeg, color) {
+            const b  = a * Math.sqrt(1 - e * e);
+            const c  = a * e;
             const pts = [];
             for (let i = 0; i <= 256; i++) {
-                const θ = (i / 256) * Math.PI * 2;
+                const θ  = (i / 256) * Math.PI * 2;
                 const px = a * Math.cos(θ) - c;
                 const pz = b * Math.sin(θ);
-                pts.push(new THREE.Vector3(px, pz * Math.sin(inc), pz * Math.cos(inc)));
+                pts.push(orbitalToScene(px, pz, OmegaDeg, incDeg, omegaDeg, 1));
             }
             return new THREE.Line(
                 new THREE.BufferGeometry().setFromPoints(pts),
@@ -932,7 +932,7 @@
             const b      = a * Math.sqrt(1 - d.e * d.e);
             const c      = a * d.e;
             const incRad = d.inc * Math.PI / 180;
-            scene.add(orbitLine(a, d.e, d.inc, d.orbitColor));
+            scene.add(orbitLine(a, d.e, d.inc, d.Omega || 0, d.omega || 0, d.orbitColor));
 
             let mat;
             if (d.isEarth) {
@@ -995,6 +995,7 @@
             scene.add(mesh);
             return {
                 mesh, name: d.name, a, b, c, e: d.e, incRad,
+                Omega: d.Omega || 0, omega: d.omega || 0, inc: d.inc || 0,
                 speed: BASE_SPEED / d.period,
                 angle: Math.random() * Math.PI * 2
             };
@@ -1005,17 +1006,17 @@
         // ── Scale: 1 AU = 24 scene units (Earth visual distance) ─────────────
         const AU_SCALE = 24;
 
-        // ── J2000 Keplerian elements (M0 in deg, n in deg/day) ───────────────
-        // Source: JPL Planetary Fact Sheets
+        // ── J2000 Keplerian elements (M0=mean anomaly at J2000, n=deg/day, Omega=ascending node, omega=argument of perihelion)
+        // Source: JPL Planetary Fact Sheets / Horizons J2000 ecliptic frame
         const PLANET_KEPLER = [
-            { M0: 174.7948, n: 360 / 87.9691  }, // Mercury
-            { M0:  50.4161, n: 360 / 224.7008 }, // Venus
-            { M0: 357.5291, n: 360 / 365.2563 }, // Earth
-            { M0:  19.3730, n: 360 / 686.9710 }, // Mars
-            { M0:  20.0202, n: 360 / 4332.589 }, // Jupiter
-            { M0: 317.0207, n: 360 / 10759.22 }, // Saturn
-            { M0: 141.0498, n: 360 / 30688.5  }, // Uranus
-            { M0: 256.2250, n: 360 / 60182.0  }, // Neptune
+            { M0: 174.7948, n: 360 / 87.9691,  Omega:  48.331, omega:  29.125 }, // Mercury
+            { M0:  50.4161, n: 360 / 224.7008, Omega:  76.680, omega:  54.884 }, // Venus
+            { M0: 357.5291, n: 360 / 365.2563, Omega:   0.000, omega: 102.937 }, // Earth
+            { M0:  19.3730, n: 360 / 686.9710, Omega:  49.558, omega: 286.502 }, // Mars
+            { M0:  20.0202, n: 360 / 4332.589, Omega: 100.464, omega:  14.331 }, // Jupiter
+            { M0: 317.0207, n: 360 / 10759.22, Omega: 113.665, omega:  93.058 }, // Saturn
+            { M0: 141.0498, n: 360 / 30688.5,  Omega:  74.006, omega: 173.005 }, // Uranus
+            { M0: 256.2250, n: 360 / 60182.0,  Omega: 131.784, omega:  48.123 }, // Neptune
         ];
 
         // Iterative Kepler solver (converges in <10 steps for our eccentricities)
@@ -1023,6 +1024,23 @@
             let E = M;
             for (let i = 0; i < 10; i++) E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
             return E;
+        }
+
+        // Transform orbital-plane coords (px = along perihelion, pzF = perpendicular) to Three.js scene coords.
+        // Applies full ecliptic J2000 rotation: argument of perihelion (omega), inclination (i), ascending node (Omega).
+        // Three.js mapping: H.x→T.x, H.y→T.z, H.z→T.y  (ecliptic Z = north = Three.js Y)
+        function orbitalToScene(px, pzF, OmegaDeg, incDeg, omegaDeg, scale) {
+            const O  = OmegaDeg * Math.PI / 180;
+            const i  = incDeg   * Math.PI / 180;
+            const w  = omegaDeg * Math.PI / 180;
+            const cO = Math.cos(O), sO = Math.sin(O);
+            const ci = Math.cos(i), si = Math.sin(i);
+            const cw = Math.cos(w), sw = Math.sin(w);
+            const Hx = (cO * cw - sO * sw * ci) * px + (-cO * sw - sO * cw * ci) * pzF;
+            const Hy = (sO * cw + cO * sw * ci) * px + (-sO * sw + cO * cw * ci) * pzF;
+            const Hz = sw * si * px + cw * si * pzF;
+            const s  = scale || 1;
+            return new THREE.Vector3(Hx * s, Hz * s, Hy * s); // H.y→T.z, H.z→T.y
         }
 
         // ── Time simulation ───────────────────────────────────────────────────
@@ -1255,7 +1273,7 @@
                 syncUI();
             }
 
-            // Planet positions from Keplerian elements at simDay
+            // Planet positions from Keplerian elements at simDay (ecliptic J2000 frame, full Euler rotation)
             for (let pi = 0; pi < planets.length; pi++) {
                 const p   = planets[pi];
                 const kep = PLANET_KEPLER[pi];
@@ -1263,7 +1281,8 @@
                 const E   = solveKepler(Mrad, p.e);
                 const px  = p.a * Math.cos(E) - p.c;
                 const pzF = p.b * Math.sin(E);
-                p.mesh.position.set(px, pzF * Math.sin(p.incRad), pzF * Math.cos(p.incRad));
+                const pos = orbitalToScene(px, pzF, kep.Omega, p.inc, kep.omega, 1);
+                p.mesh.position.copy(pos);
                 p.mesh.rotation.y += 0.008;
 
                 if (p.mesh.userData.clouds) {
@@ -1317,6 +1336,7 @@
         });
 
         animate();
+
     </script>
 </body>
 </html>
