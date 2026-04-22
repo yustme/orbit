@@ -129,6 +129,57 @@
             z-index: 20;
         }
         #back-btn:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
+        #time-controls {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0,0,0,0.78);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            padding: 10px 18px;
+            color: #fff;
+            font-family: sans-serif;
+            font-size: 0.8em;
+            z-index: 10;
+            white-space: nowrap;
+            user-select: none;
+        }
+        #play-btn {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            border-radius: 4px;
+            width: 30px; height: 30px;
+            cursor: pointer;
+            font-size: 1em;
+            padding: 0;
+            flex-shrink: 0;
+        }
+        #play-btn:hover { border-color: rgba(100,180,255,0.6); color: #aaddff; }
+        #time-slider {
+            width: 340px;
+            cursor: pointer;
+            accent-color: #4488ff;
+        }
+        #date-display {
+            min-width: 114px;
+            text-align: center;
+            letter-spacing: 1px;
+            color: #aaddff;
+        }
+        #speed-select {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
         #tooltip {
             position: absolute;
             pointer-events: none;
@@ -156,6 +207,19 @@
     <div id="galaxy-info"></div>
     <button id="back-btn">&#8592; Back to Solar System</button>
 
+    <div id="time-controls">
+        <button id="play-btn">&#9654;</button>
+        <input type="range" id="time-slider" min="-10225" max="9610" value="9610" step="1">
+        <div id="date-display">Apr 22, 2026</div>
+        <select id="speed-select">
+            <option value="1">1 d/frame</option>
+            <option value="5">5 d/frame</option>
+            <option value="10" selected>10 d/frame</option>
+            <option value="30">30 d/frame</option>
+            <option value="100">100 d/frame</option>
+        </select>
+    </div>
+
     <div id="legend">
         <div class="legend-section">Planets</div>
         <div class="legend-item"><div class="legend-dot" style="background:#887766"></div>Mercury</div>
@@ -168,8 +232,11 @@
         <div class="legend-item"><div class="legend-dot" style="background:#3366cc"></div>Neptune</div>
         <div class="legend-section">Galaxies</div>
         <div id="galaxy-legend"></div>
+        <div class="legend-section" style="margin-top:10px">Spacecraft</div>
+        <div id="sc-legend"></div>
     </div>
 
+    <script src="trajectories_data.js"></script>
     <script type="importmap">
     {
       "imports": {
@@ -914,13 +981,143 @@
 
             scene.add(mesh);
             return {
-                mesh, name: d.name, a, b, c, incRad,
+                mesh, name: d.name, a, b, c, e: d.e, incRad,
                 speed: BASE_SPEED / d.period,
                 angle: Math.random() * Math.PI * 2
             };
         }
 
         planetsData.forEach(d => planets.push(createPlanet(d)));
+
+        // ── Scale: 1 AU = 24 scene units (Earth visual distance) ─────────────
+        const AU_SCALE = 24;
+
+        // ── J2000 Keplerian elements (M0 in deg, n in deg/day) ───────────────
+        // Source: JPL Planetary Fact Sheets
+        const PLANET_KEPLER = [
+            { M0: 174.7948, n: 360 / 87.9691  }, // Mercury
+            { M0:  50.4161, n: 360 / 224.7008 }, // Venus
+            { M0: 357.5291, n: 360 / 365.2563 }, // Earth
+            { M0:  19.3730, n: 360 / 686.9710 }, // Mars
+            { M0:  20.0202, n: 360 / 4332.589 }, // Jupiter
+            { M0: 317.0207, n: 360 / 10759.22 }, // Saturn
+            { M0: 141.0498, n: 360 / 30688.5  }, // Uranus
+            { M0: 256.2250, n: 360 / 60182.0  }, // Neptune
+        ];
+
+        // Iterative Kepler solver (converges in <10 steps for our eccentricities)
+        function solveKepler(M, e) {
+            let E = M;
+            for (let i = 0; i < 10; i++) E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+            return E;
+        }
+
+        // ── Time simulation ───────────────────────────────────────────────────
+        const J2000_MS  = Date.UTC(2000, 0, 1, 12);
+        const TODAY_DAY = (Date.now() - J2000_MS) / 86400000;
+        const MIN_DAY   = -10225; // 1972-03-04 (Pioneer 10)
+        const MAX_DAY   = Math.ceil(TODAY_DAY);
+
+        let simDay   = TODAY_DAY;
+        let playing  = false;
+        let simSpeed = 10; // days per frame
+
+        function daysToDate(d) {
+            return new Date(J2000_MS + d * 86400000).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric'
+            });
+        }
+
+        const slider   = document.getElementById('time-slider');
+        const dateLbl  = document.getElementById('date-display');
+        const playBtn  = document.getElementById('play-btn');
+        const speedSel = document.getElementById('speed-select');
+
+        slider.min = MIN_DAY; slider.max = MAX_DAY; slider.value = MAX_DAY;
+
+        function syncUI() {
+            dateLbl.textContent = daysToDate(simDay);
+            slider.value = Math.round(simDay);
+        }
+        syncUI();
+
+        playBtn.addEventListener('click', () => {
+            playing = !playing;
+            playBtn.innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
+        });
+        slider.addEventListener('input', () => { simDay = parseFloat(slider.value); syncUI(); });
+        speedSel.addEventListener('change', () => { simSpeed = parseFloat(speedSel.value); });
+
+        // ── Spacecraft trajectories ───────────────────────────────────────────
+        // Horizons ecliptic J2000 → Three.js:  H.x→T.x  H.y→T.z  H.z→T.y
+        const scObjects = [];
+
+        if (typeof trajectoryData !== 'undefined') {
+            for (const [scName, sc] of Object.entries(trajectoryData)) {
+                const pts = sc.points;
+                if (!pts || pts.length < 2) continue;
+
+                const launchDay = pts[0][0];
+                const endDay    = pts[pts.length - 1][0];
+
+                // Full trajectory line (visible when active)
+                const v3pts = pts.map(p => new THREE.Vector3(
+                    p[1] * AU_SCALE,
+                    p[3] * AU_SCALE,
+                    p[2] * AU_SCALE
+                ));
+                const curve   = new THREE.CatmullRomCurve3(v3pts);
+                const lineGeo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(600));
+                const line    = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({
+                    color: sc.color, transparent: true, opacity: 0.22, depthWrite: false
+                }));
+                line.visible = false;
+                scene.add(line);
+
+                // Spacecraft glow sprite
+                const dotTex = canvasTex((ctx, s) => {
+                    const g = ctx.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/2);
+                    g.addColorStop(0,   sc.color);
+                    g.addColorStop(0.4, sc.color + 'bb');
+                    g.addColorStop(1,   'rgba(0,0,0,0)');
+                    ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
+                }, 64);
+                const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+                    map: dotTex, transparent: true, depthWrite: false,
+                    blending: THREE.AdditiveBlending
+                }));
+                sprite.scale.set(2.2, 2.2, 1);
+                sprite.visible = false;
+                scene.add(sprite);
+
+                scObjects.push({ name: scName, color: sc.color, status: sc.status,
+                    points: pts, sprite, line, launchDay, endDay });
+            }
+        }
+
+        // Linear interpolation of spacecraft position at arbitrary simDay
+        function interpSC(pts, day) {
+            if (day < pts[0][0] || day > pts[pts.length-1][0]) return null;
+            let lo = 0, hi = pts.length - 1;
+            while (hi - lo > 1) { const m = (lo+hi)>>1; if (pts[m][0] <= day) lo=m; else hi=m; }
+            const f = (day - pts[lo][0]) / (pts[hi][0] - pts[lo][0]);
+            return new THREE.Vector3(
+                (pts[lo][1] + f*(pts[hi][1]-pts[lo][1])) * AU_SCALE,
+                (pts[lo][3] + f*(pts[hi][3]-pts[lo][3])) * AU_SCALE,
+                (pts[lo][2] + f*(pts[hi][2]-pts[lo][2])) * AU_SCALE
+            );
+        }
+
+        // Spacecraft legend
+        const scLegendEl = document.getElementById('sc-legend');
+        for (const sc of scObjects) {
+            const item = document.createElement('div');
+            item.className = 'legend-item';
+            item.style.fontSize = '0.7em';
+            const dot = sc.status === 'active' ? sc.color : sc.color + '88';
+            item.innerHTML = `<div class="legend-dot" style="background:${dot}"></div>${sc.name}`;
+            scLegendEl.appendChild(item);
+        }
 
         // ── Hover tooltips (raycasting) ───────────────────────────────────────
         const tooltip  = document.getElementById('tooltip');
@@ -961,7 +1158,19 @@
                 }
             }
 
-            // 3. Catalog stars (Points)
+            // 3. Spacecraft sprites
+            if (!label) {
+                const visSprites = scObjects.filter(s => s.sprite.visible).map(s => s.sprite);
+                if (visSprites.length) {
+                    const scHits = raycaster.intersectObjects(visSprites);
+                    if (scHits.length) {
+                        const hit = scObjects.find(s => s.sprite === scHits[0].object);
+                        if (hit) label = hit.name;
+                    }
+                }
+            }
+
+            // 4. Catalog stars (Points)
             if (!label) {
                 const sHits = raycaster.intersectObject(starPoints);
                 if (sHits.length) label = starNames[sHits[0].index];
@@ -987,10 +1196,21 @@
             const pulse = 1 + Math.sin(time * 1.5) * 0.04;
             glow.scale.set(18 * pulse, 18 * pulse, 1);
 
-            for (const p of planets) {
-                p.angle += p.speed;
-                const px  = p.a * Math.cos(p.angle) - p.c;
-                const pzF = p.b * Math.sin(p.angle);
+            // Advance simulation time
+            if (playing) {
+                simDay += simSpeed;
+                if (simDay > MAX_DAY) simDay = MIN_DAY;
+                syncUI();
+            }
+
+            // Planet positions from Keplerian elements at simDay
+            for (let pi = 0; pi < planets.length; pi++) {
+                const p   = planets[pi];
+                const kep = PLANET_KEPLER[pi];
+                const Mrad = ((kep.M0 + kep.n * simDay) % 360) * Math.PI / 180;
+                const E   = solveKepler(Mrad, p.e);
+                const px  = p.a * Math.cos(E) - p.c;
+                const pzF = p.b * Math.sin(E);
                 p.mesh.position.set(px, pzF * Math.sin(p.incRad), pzF * Math.cos(p.incRad));
                 p.mesh.rotation.y += 0.008;
 
@@ -1006,6 +1226,17 @@
                         p.mesh.position.z + Math.sin(ma) * 2.2
                     );
                     p.mesh.userData.moon.rotation.y += 0.005;
+                }
+            }
+
+            // Spacecraft positions
+            for (const sc of scObjects) {
+                const active = simDay >= sc.launchDay && simDay <= sc.endDay;
+                if (sc.sprite.visible !== active) sc.sprite.visible = active;
+                if (sc.line.visible   !== active) sc.line.visible   = active;
+                if (active) {
+                    const pos = interpSC(sc.points, simDay);
+                    if (pos) sc.sprite.position.copy(pos);
                 }
             }
 
