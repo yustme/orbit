@@ -245,11 +245,8 @@
         <div class="legend-item"><div class="legend-dot" style="background:#3366cc"></div>Neptune</div>
         <div class="legend-section">Galaxies</div>
         <div id="galaxy-legend"></div>
-        <div class="legend-section" style="margin-top:10px; display:flex; align-items:center; gap:8px; pointer-events:all;">
-            Spacecraft
-            <button id="sc-toggle" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25); color:#888; border-radius:3px; font-size:0.8em; padding:1px 7px; cursor:pointer; letter-spacing:1px;">OFF</button>
-        </div>
-        <div id="sc-legend" style="opacity:0.3; pointer-events:none;"></div>
+        <div class="legend-section" style="margin-top:10px">Spacecraft</div>
+        <div id="sc-legend"></div>
     </div>
 
     <script src="trajectories_data.js"></script>
@@ -1124,53 +1121,35 @@
             );
         }
 
-        // Spacecraft on/off toggle (default: off)
-        let scEnabled = false;
+        // Spacecraft selection — clicking a name shows it and jumps to its launch
+        let selectedSC = null;
 
-        function setScEnabled(on) {
-            scEnabled = on;
-            const btn = document.getElementById('sc-toggle');
-            const leg = document.getElementById('sc-legend');
-            btn.textContent = on ? 'ON' : 'OFF';
-            btn.style.color = on ? '#aaddff' : '#888';
-            btn.style.borderColor = on ? 'rgba(100,180,255,0.4)' : 'rgba(255,255,255,0.25)';
-            leg.style.opacity = on ? '1' : '0.3';
-            leg.style.pointerEvents = on ? 'all' : 'none';
-            // hide all spacecraft when toggled off
-            if (!on) {
-                for (const sc of scObjects) {
-                    sc.sprite.visible = false;
-                    sc.line.visible = false;
-                }
-            }
-        }
+        function selectSpacecraft(name) {
+            selectedSC = (selectedSC === name) ? null : name;
 
-        document.getElementById('sc-toggle').addEventListener('click', () => setScEnabled(!scEnabled));
+            const sel = scObjects.find(s => s.name === selectedSC) || null;
 
-        // Spacecraft legend with selection
-        let selectedSC = null; // name of selected spacecraft, or null
-
-        function applyScSelection() {
+            // Visibility + style for each spacecraft
             for (const sc of scObjects) {
                 const isSelected = sc.name === selectedSC;
-                const dimmed     = selectedSC !== null && !isSelected;
-                sc.line.material.opacity = dimmed ? 0.05 : (isSelected ? 0.65 : 0.22);
-                const s = dimmed ? 1.0 : (isSelected ? 3.5 : 2.2);
-                sc.sprite.scale.set(s, s, 1);
+                sc.line.material.opacity = isSelected ? 0.65 : 0.22;
+                sc.sprite.scale.set(isSelected ? 3.5 : 2.2, isSelected ? 3.5 : 2.2, 1);
+                // hide non-selected when something is selected
+                if (selectedSC && !isSelected) {
+                    sc.sprite.visible = false;
+                    sc.line.visible   = false;
+                }
                 if (sc.legendItem) {
                     sc.legendItem.classList.toggle('sc-selected', isSelected);
-                    sc.legendItem.classList.toggle('sc-dimmed', dimmed);
+                    sc.legendItem.classList.toggle('sc-dimmed', selectedSC !== null && !isSelected);
                 }
             }
 
-            // Adjust slider range to selected spacecraft's mission window
-            const sel = scObjects.find(s => s.name === selectedSC);
+            // Slider range + jump to launch
             if (sel) {
                 slider.min = Math.floor(sel.launchDay);
                 slider.max = Math.ceil(sel.endDay);
-                // Clamp simDay into range
-                if (simDay < sel.launchDay) simDay = sel.launchDay;
-                if (simDay > sel.endDay)    simDay = sel.launchDay; // start from launch
+                simDay = sel.launchDay;
             } else {
                 slider.min = MIN_DAY;
                 slider.max = MAX_DAY;
@@ -1185,10 +1164,7 @@
             item.style.fontSize = '0.7em';
             const dot = sc.status === 'active' ? sc.color : sc.color + '88';
             item.innerHTML = `<div class="legend-dot" style="background:${dot}"></div>${sc.name}`;
-            item.addEventListener('click', () => {
-                selectedSC = (selectedSC === sc.name) ? null : sc.name;
-                applyScSelection();
-            });
+            item.addEventListener('click', () => selectSpacecraft(sc.name));
             sc.legendItem = item;
             scLegendEl.appendChild(item);
         }
@@ -1305,15 +1281,14 @@
                 }
             }
 
-            // Spacecraft positions (only when enabled)
-            if (scEnabled) {
-                for (const sc of scObjects) {
-                    const active = simDay >= sc.launchDay && simDay <= sc.endDay
-                                   && (selectedSC === null || selectedSC === sc.name);
-                    if (sc.sprite.visible !== active) sc.sprite.visible = active;
-                    const lineVis = simDay >= sc.launchDay && simDay <= sc.endDay;
-                    if (sc.line.visible !== lineVis) sc.line.visible = lineVis;
-                    if (active) {
+            // Spacecraft positions — only the selected one is shown
+            if (selectedSC) {
+                const sc = scObjects.find(s => s.name === selectedSC);
+                if (sc) {
+                    const inMission = simDay >= sc.launchDay && simDay <= sc.endDay;
+                    sc.sprite.visible = inMission;
+                    sc.line.visible   = inMission;
+                    if (inMission) {
                         const pos = interpSC(sc.points, simDay);
                         if (pos) sc.sprite.position.copy(pos);
                     }
