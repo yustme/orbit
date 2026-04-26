@@ -735,28 +735,37 @@
                     ctx.beginPath(); ctx.ellipse(0, 0, s*0.42, s*0.3, 0, 0, Math.PI*2); ctx.fill();
                 } else if (type === 'keboola') {
                     // Outer glow in Keboola blue
-                    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.46);
-                    glow.addColorStop(0,   'rgba(30, 140, 255, 0.65)');
-                    glow.addColorStop(0.4, 'rgba(10,  80, 200, 0.28)');
+                    const glow = ctx.createRadialGradient(0, -s*0.10, 0, 0, 0, s*0.46);
+                    glow.addColorStop(0,   'rgba(60, 160, 255, 0.70)');
+                    glow.addColorStop(0.4, 'rgba(30, 100, 200, 0.28)');
                     glow.addColorStop(1,   'rgba(0,    0,   0, 0)');
                     ctx.fillStyle = glow;
-                    ctx.beginPath(); ctx.arc(0, 0, s * 0.46, 0, Math.PI * 2); ctx.fill();
-                    // K shape
-                    ctx.strokeStyle = 'rgba(130, 215, 255, 0.95)';
-                    ctx.lineWidth = s * 0.044;
+                    ctx.beginPath(); ctx.arc(0, 0, s*0.46, 0, Math.PI*2); ctx.fill();
+                    // Head oval (upper portion)
+                    ctx.fillStyle = 'rgba(60, 160, 255, 0.58)';
+                    ctx.beginPath();
+                    ctx.ellipse(0, -s*0.13, s*0.24, s*0.28, 0, 0, Math.PI*2);
+                    ctx.fill();
+                    // Eyes — two bright circles
+                    ctx.fillStyle = 'rgba(210, 240, 255, 0.95)';
+                    ctx.beginPath(); ctx.arc(-s*0.07, -s*0.02, s*0.038, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc( s*0.07, -s*0.02, s*0.038, 0, Math.PI*2); ctx.fill();
+                    // Arms — sweeping bezier curves outward and down
+                    ctx.strokeStyle = 'rgba(100, 195, 255, 0.55)';
+                    ctx.lineWidth = s * 0.042;
                     ctx.lineCap = 'round';
-                    ctx.shadowColor = 'rgba(80, 180, 255, 0.9)';
-                    ctx.shadowBlur = s * 0.05;
-                    const sx = -s * 0.09;
-                    ctx.beginPath(); ctx.moveTo(sx, -s*0.38); ctx.lineTo(sx, s*0.38); ctx.stroke();   // stem
-                    ctx.beginPath(); ctx.moveTo(sx, -s*0.04); ctx.lineTo(s*0.37, -s*0.39); ctx.stroke(); // upper arm
-                    ctx.beginPath(); ctx.moveTo(sx,  s*0.04); ctx.lineTo(s*0.37,  s*0.39); ctx.stroke(); // lower arm
-                    // Bright data-core at junction
-                    const core = ctx.createRadialGradient(sx, 0, 0, sx, 0, s * 0.09);
-                    core.addColorStop(0, 'rgba(220, 250, 255, 1.0)');
-                    core.addColorStop(1, 'rgba(30,  140, 255, 0)');
+                    for (const sx of [-1, 1]) {
+                        ctx.beginPath();
+                        ctx.moveTo(sx*s*0.10, s*0.05);
+                        ctx.bezierCurveTo(sx*s*0.42, s*0.02, sx*s*0.40, s*0.22, sx*s*0.26, s*0.36);
+                        ctx.stroke();
+                    }
+                    // Core brightness at head center
+                    const core = ctx.createRadialGradient(0, -s*0.10, 0, 0, -s*0.10, s*0.09);
+                    core.addColorStop(0, 'rgba(215, 242, 255, 0.92)');
+                    core.addColorStop(1, 'rgba(60,  160, 255, 0)');
                     ctx.fillStyle = core;
-                    ctx.beginPath(); ctx.arc(sx, 0, s * 0.09, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(0, -s*0.10, s*0.09, 0, Math.PI*2); ctx.fill();
                 } else { // irregular (Magellanic Clouds)
                     const g = ctx.createRadialGradient(0, -s*0.05, 0, 0, 0, s * 0.46);
                     g.addColorStop(0,   'rgba(210,225,255,0.85)');
@@ -894,73 +903,101 @@
                     col[i*3] = 1.0; col[i*3+1] = 0.58+w*0.32; col[i*3+2] = 0.12+w*0.38;
                 }
             } else if (type === 'keboola') {
-                // Keboola Galaxy — K-shaped, built from millions of tables and CSV files
-                const kBlue   = [0.12, 0.56, 1.00];
-                const kCyan   = [0.46, 0.88, 1.00];
-                const kWhite  = [0.88, 0.96, 1.00];
+                // Keboola logo character: head + eyes + arms + legs, in Keboola blue (#3ca0ff)
+                const kBlue   = [0.24, 0.63, 1.00]; // #3ca0ff
+                const kLight  = [0.55, 0.83, 1.00]; // lighter blue highlight
+                const kWhite  = [0.88, 0.96, 1.00]; // white-hot core
                 const kOrange = [1.00, 0.48, 0.08]; // failed ETL jobs
                 const kGreen  = [0.18, 1.00, 0.52]; // successful transforms
-                const stemX   = -R * 0.30;
 
-                // Stem (vertical bar)
-                const nStem = Math.floor(count * 0.28);
-                for (let i = 0; i < nStem; i++) {
-                    const t = rng();
-                    pos[i*3]   = stemX + (rng()-0.5)*R*0.09;
-                    pos[i*3+1] = (rng()-0.5)*R*0.04;
-                    pos[i*3+2] = (t-0.5)*R*0.96;
+                // ── Head oval ────────────────────────────────────────────────────
+                // SVG center (32, 20) → galaxy (0, +20), radii 24 × 30
+                const nHead = Math.floor(count * 0.28);
+                for (let i = 0; i < nHead; i++) {
+                    const r = Math.pow(rng(), 1.7);
+                    const th = rng() * Math.PI * 2;
+                    pos[i*3]   = r * 24 * Math.cos(th);
+                    pos[i*3+1] = (rng()-0.5) * R * 0.04;
+                    pos[i*3+2] = 20 + r * 30 * Math.sin(th);
                     const br = rng();
-                    const clr = br>0.82 ? kWhite : br>0.45 ? kCyan : kBlue;
+                    const clr = br > 0.85 ? kWhite : br > 0.5 ? kLight : kBlue;
                     col[i*3]=clr[0]; col[i*3+1]=clr[1]; col[i*3+2]=clr[2];
                 }
-                // Upper arm
-                const nArm  = Math.floor(count * 0.21);
-                const uSt   = nStem;
-                for (let i = 0; i < nArm; i++) {
-                    const t = Math.pow(rng(), 0.65), ii = uSt+i;
-                    pos[ii*3]  = stemX + t*R*0.82;
-                    pos[ii*3+1]= (rng()-0.5)*R*0.035;
-                    pos[ii*3+2]= R*0.06 + t*R*0.42 + (rng()-0.5)*R*0.07;
-                    const clr = rng()>0.72 ? kWhite : kCyan;
-                    col[ii*3]=clr[0]; col[ii*3+1]=clr[1]; col[ii*3+2]=clr[2];
+
+                // ── Eyes (two dense circles) ──────────────────────────────────
+                // SVG left (28.6, 33.7) → galaxy (−5.5, −2.75), radius ~4.5
+                // SVG right (35.4, 33.7) → galaxy (+5.5, −2.75), radius ~4.5
+                const nEye = Math.floor(count * 0.06);
+                for (let e = 0; e < 2; e++) {
+                    const eCX = e === 0 ? -5.5 : 5.5;
+                    const eBase = nHead + e * nEye;
+                    for (let i = 0; i < nEye; i++) {
+                        const r = Math.pow(rng(), 0.6) * 4.5;
+                        const th = rng() * Math.PI * 2;
+                        const ii = eBase + i;
+                        pos[ii*3]   = eCX + r * Math.cos(th);
+                        pos[ii*3+1] = (rng()-0.5) * R * 0.02;
+                        pos[ii*3+2] = -2.75 + r * Math.sin(th);
+                        col[ii*3]=kWhite[0]; col[ii*3+1]=kWhite[1]; col[ii*3+2]=kWhite[2];
+                    }
                 }
-                // Lower arm
-                const lSt = uSt + nArm;
-                for (let i = 0; i < nArm; i++) {
-                    const t = Math.pow(rng(), 0.65), ii = lSt+i;
-                    pos[ii*3]  = stemX + t*R*0.82;
-                    pos[ii*3+1]= (rng()-0.5)*R*0.035;
-                    pos[ii*3+2]= -(R*0.06 + t*R*0.42 + (rng()-0.5)*R*0.07);
-                    const clr = rng()>0.72 ? kWhite : kCyan;
-                    col[ii*3]=clr[0]; col[ii*3+1]=clr[1]; col[ii*3+2]=clr[2];
+
+                // ── Arms (cubic bezier, sweeping outward then curving down) ──
+                const nArm = Math.floor(count * 0.16);
+                const armBase = nHead + 2 * nEye;
+                for (let a = 0; a < 2; a++) {
+                    const sg = a === 0 ? -1 : 1;
+                    const aBase = armBase + a * nArm;
+                    // Bezier: (±8,−8) → (±42,−5) → (±38,−20) → (±22,−32)
+                    const p0x = sg*8,  p0z = -8;
+                    const p1x = sg*42, p1z = -5;
+                    const p2x = sg*38, p2z = -20;
+                    const p3x = sg*22, p3z = -32;
+                    for (let i = 0; i < nArm; i++) {
+                        const t = rng();
+                        const u = 1 - t;
+                        const bx = u*u*u*p0x + 3*u*u*t*p1x + 3*u*t*t*p2x + t*t*t*p3x;
+                        const bz = u*u*u*p0z + 3*u*u*t*p1z + 3*u*t*t*p2z + t*t*t*p3z;
+                        const sc = R * 0.05 * (1 - t * 0.4);
+                        const ii = aBase + i;
+                        pos[ii*3]   = bx + (rng()-0.5)*sc*2;
+                        pos[ii*3+1] = (rng()-0.5)*R*0.03;
+                        pos[ii*3+2] = bz + (rng()-0.5)*sc;
+                        const br = rng();
+                        const clr = br > 0.68 ? kLight : kBlue;
+                        col[ii*3]=clr[0]; col[ii*3+1]=clr[1]; col[ii*3+2]=clr[2];
+                    }
                 }
-                // Table clusters — spreadsheet cells floating in space
-                const nTables = Math.floor(count * 0.22);
-                const tSt2 = lSt + nArm;
-                const tCenters = [
-                    {x: 0.10*R, z:  0.32*R}, {x: 0.28*R, z: -0.38*R},
-                    {x:-0.08*R, z:  0.44*R}, {x: 0.42*R, z:  0.12*R},
-                    {x:-0.38*R, z: -0.28*R}, {x: 0.12*R, z: -0.48*R},
-                    {x: 0.35*R, z:  0.38*R}, {x:-0.20*R, z: -0.44*R},
-                ];
-                for (let i = 0; i < nTables; i++) {
-                    const tc = tCenters[Math.floor(rng()*tCenters.length)];
-                    const cellW = R*0.055;
-                    const ii = tSt2+i;
-                    pos[ii*3]  = tc.x + Math.round(rng()*6)*cellW - R*0.17 + (rng()-0.5)*cellW*0.3;
-                    pos[ii*3+1]= (rng()-0.5)*R*0.02;
-                    pos[ii*3+2]= tc.z + Math.round(rng()*5)*cellW - R*0.14 + (rng()-0.5)*cellW*0.3;
-                    const br = rng();
-                    col[ii*3]=0.05+br*0.25; col[ii*3+1]=0.72+br*0.28; col[ii*3+2]=0.88+br*0.12;
+
+                // ── Legs (two streams curving inward downward) ────────────────
+                const nLeg = Math.floor(count * 0.12);
+                const legBase = armBase + 2 * nArm;
+                for (let l = 0; l < 2; l++) {
+                    const sg = l === 0 ? -1 : 1;
+                    const lBase = legBase + l * nLeg;
+                    for (let i = 0; i < nLeg; i++) {
+                        const t = Math.pow(rng(), 0.75);
+                        const lx = sg * (22 - t * 12);   // ±22 → ±10
+                        const lz = -32 - t * 20;          // −32 → −52
+                        const ii = lBase + i;
+                        pos[ii*3]   = lx + (rng()-0.5)*R*0.045;
+                        pos[ii*3+1] = (rng()-0.5)*R*0.03;
+                        pos[ii*3+2] = lz + (rng()-0.5)*R*0.04;
+                        const br = rng();
+                        const clr = br > 0.68 ? kLight : kBlue;
+                        col[ii*3]=clr[0]; col[ii*3+1]=clr[1]; col[ii*3+2]=clr[2];
+                    }
                 }
-                // Pipeline sparks — orange failures, green successes
-                const sSt2 = tSt2 + nTables;
-                for (let i = sSt2; i < count; i++) {
-                    const r2 = R*0.08 + rng()*R*0.58, th = rng()*Math.PI*2;
-                    pos[i*3]  = r2*Math.cos(th);
-                    pos[i*3+1]= (rng()-0.5)*R*0.06;
-                    pos[i*3+2]= r2*Math.sin(th);
-                    const clr = rng()>0.62 ? kOrange : kGreen;
+
+                // ── Pipeline sparks ───────────────────────────────────────────
+                const spBase = legBase + 2 * nLeg;
+                for (let i = spBase; i < count; i++) {
+                    const r2 = R * 0.08 + rng() * R * 0.52;
+                    const th = rng() * Math.PI * 2;
+                    pos[i*3]   = r2 * Math.cos(th);
+                    pos[i*3+1] = (rng()-0.5) * R * 0.05;
+                    pos[i*3+2] = r2 * Math.sin(th) * 0.55 - 5;
+                    const clr = rng() > 0.62 ? kOrange : kGreen;
                     col[i*3]=clr[0]; col[i*3+1]=clr[1]; col[i*3+2]=clr[2];
                 }
             } else { // irregular — multiple star-forming clumps, blue-white stars
