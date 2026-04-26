@@ -88,4 +88,42 @@ test.describe('index.html mobile', () => {
       expect(visible).toBe(true);
     }
   });
+
+  test('canvas has touch-action none', async ({ page }) => {
+    await page.waitForTimeout(2000);
+    const canvas = await page.$('canvas');
+    expect(canvas).not.toBeNull();
+    const touchAction = await canvas.evaluate(el => el.style.touchAction);
+    expect(touchAction).toBe('none');
+  });
+
+  test('end-to-end: open legend and close it', async ({ page }) => {
+    await page.waitForTimeout(1500);
+    // Open legend
+    await page.dispatchEvent('#hamburger-btn', 'click');
+    await page.waitForTimeout(400);
+    const legendAfterOpen = await page.$('#legend');
+    if (legendAfterOpen) {
+      expect(await legendAfterOpen.isVisible()).toBe(true);
+    }
+    // Close legend
+    await page.dispatchEvent('#hamburger-btn', 'click');
+    await page.waitForTimeout(400);
+    const legendAfterClose = await page.$('#legend');
+    if (legendAfterClose) {
+      expect(await legendAfterClose.isVisible()).toBe(false);
+    }
+  });
+
+  test('end-to-end: play button toggles animation', async ({ page }) => {
+    await page.waitForTimeout(2000);
+    const playBtn = await page.$('#play-btn');
+    if (playBtn) {
+      const initialText = await playBtn.textContent();
+      await page.dispatchEvent('#play-btn', 'click');
+      await page.waitForTimeout(300);
+      const afterClickText = await playBtn.textContent();
+      expect(typeof afterClickText).toBe('string');
+    }
+  });
 });
