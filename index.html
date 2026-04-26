@@ -2,6 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Solar System</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; }
@@ -473,6 +474,13 @@
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
         import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
+        // Detect touch device and show appropriate instructions
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const infoInstructions = document.querySelector('#info p');
+        if (isTouchDevice && infoInstructions) {
+            infoInstructions.textContent = '1 prst: Rotace | 2 prsty: Zoom';
+        }
+
         // Scene
         const scene = new THREE.Scene();
 
@@ -725,6 +733,30 @@
                     g.addColorStop(1,   'rgba(0,0,0,0)');
                     ctx.fillStyle = g;
                     ctx.beginPath(); ctx.ellipse(0, 0, s*0.42, s*0.3, 0, 0, Math.PI*2); ctx.fill();
+                } else if (type === 'keboola') {
+                    // Outer glow in Keboola blue
+                    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.46);
+                    glow.addColorStop(0,   'rgba(30, 140, 255, 0.65)');
+                    glow.addColorStop(0.4, 'rgba(10,  80, 200, 0.28)');
+                    glow.addColorStop(1,   'rgba(0,    0,   0, 0)');
+                    ctx.fillStyle = glow;
+                    ctx.beginPath(); ctx.arc(0, 0, s * 0.46, 0, Math.PI * 2); ctx.fill();
+                    // K shape
+                    ctx.strokeStyle = 'rgba(130, 215, 255, 0.95)';
+                    ctx.lineWidth = s * 0.044;
+                    ctx.lineCap = 'round';
+                    ctx.shadowColor = 'rgba(80, 180, 255, 0.9)';
+                    ctx.shadowBlur = s * 0.05;
+                    const sx = -s * 0.09;
+                    ctx.beginPath(); ctx.moveTo(sx, -s*0.38); ctx.lineTo(sx, s*0.38); ctx.stroke();   // stem
+                    ctx.beginPath(); ctx.moveTo(sx, -s*0.04); ctx.lineTo(s*0.37, -s*0.39); ctx.stroke(); // upper arm
+                    ctx.beginPath(); ctx.moveTo(sx,  s*0.04); ctx.lineTo(s*0.37,  s*0.39); ctx.stroke(); // lower arm
+                    // Bright data-core at junction
+                    const core = ctx.createRadialGradient(sx, 0, 0, sx, 0, s * 0.09);
+                    core.addColorStop(0, 'rgba(220, 250, 255, 1.0)');
+                    core.addColorStop(1, 'rgba(30,  140, 255, 0)');
+                    ctx.fillStyle = core;
+                    ctx.beginPath(); ctx.arc(sx, 0, s * 0.09, 0, Math.PI * 2); ctx.fill();
                 } else { // irregular (Magellanic Clouds)
                     const g = ctx.createRadialGradient(0, -s*0.05, 0, 0, 0, s * 0.46);
                     g.addColorStop(0,   'rgba(210,225,255,0.85)');
@@ -756,6 +788,7 @@
             { name: 'Whirlpool (M51)',  ra_h: 13.498, dec:  47.19,  type: 'spiral',    tilt:  0.2, scale:  8, opacity: 0.5 },
             { name: 'M87',              ra_h: 12.514, dec:  12.39,  type: 'elliptical',tilt:  0.0, scale:  7, opacity: 0.5 },
             { name: 'Sculptor (NGC253)',ra_h:  0.792, dec: -25.29,  type: 'spiral',    tilt:  1.1, scale: 10, opacity: 0.55 },
+            { name: 'Keboola',          ra_h:  3.141, dec: -42.00,  type: 'keboola',   tilt:  0.0, scale: 14, opacity: 0.92 },
         ];
 
         const GR = 3600;
@@ -791,6 +824,7 @@
             'Whirlpool (M51)':   { type: 'Grand Design Spiral (Sbc)',   distance: '23 million ly',    diameter: '76,000 ly',  stars: '~100 billion',  fact: 'First galaxy classified as a spiral (1845). Companion NGC 5195 is distorting its arms through tidal forces.' },
             'M87':               { type: 'Giant Elliptical (E0pec)',    distance: '53.5 million ly',  diameter: '240,000 ly', stars: '~1 trillion',   fact: 'Home of the first black hole ever photographed (2019, Event Horizon Telescope). Its plasma jet extends 5,000 light-years.' },
             'Sculptor (NGC253)': { type: 'Intermediate Spiral (SABc)',  distance: '11.4 million ly',  diameter: '90,000 ly',  stars: '~200 billion',  fact: 'One of the brightest galaxies visible from Earth. An intense starburst galaxy forming new stars at a remarkable rate.' },
+            'Keboola':           { type: 'Spreadsheet Nebula (SaaS-type Ia)', distance: '42 million rows', diameter: '1.21 TB (uncompressed)', stars: '∞ CSV files', fact: 'The only known galaxy shaped like a corporate logo. Its core is a supermassive data warehouse surrounded by billions of denormalized tables. Astronomers estimate 73% of its stars are duplicates. The orange regions are failed ETL jobs; the green ones completed successfully — eventually.' },
         };
 
         // Seeded PRNG (mulberry32)
@@ -807,7 +841,7 @@
         function createGalaxyPoints(type, seed) {
             const rng = mulberry32(seed);
             const R = 52; // galaxy radius in scene units
-            const count = (type === 'elliptical') ? 7500 : (type === 'irregular') ? 5500 : 11000;
+            const count = (type === 'keboola') ? 16000 : (type === 'elliptical') ? 7500 : (type === 'irregular') ? 5500 : 11000;
             const pos = new Float32Array(count * 3);
             const col = new Float32Array(count * 3);
 
@@ -858,6 +892,76 @@
                     pos[i*3+2] = r * Math.cos(ph);
                     const w = rng();
                     col[i*3] = 1.0; col[i*3+1] = 0.58+w*0.32; col[i*3+2] = 0.12+w*0.38;
+                }
+            } else if (type === 'keboola') {
+                // Keboola Galaxy — K-shaped, built from millions of tables and CSV files
+                const kBlue   = [0.12, 0.56, 1.00];
+                const kCyan   = [0.46, 0.88, 1.00];
+                const kWhite  = [0.88, 0.96, 1.00];
+                const kOrange = [1.00, 0.48, 0.08]; // failed ETL jobs
+                const kGreen  = [0.18, 1.00, 0.52]; // successful transforms
+                const stemX   = -R * 0.30;
+
+                // Stem (vertical bar)
+                const nStem = Math.floor(count * 0.28);
+                for (let i = 0; i < nStem; i++) {
+                    const t = rng();
+                    pos[i*3]   = stemX + (rng()-0.5)*R*0.09;
+                    pos[i*3+1] = (rng()-0.5)*R*0.04;
+                    pos[i*3+2] = (t-0.5)*R*0.96;
+                    const br = rng();
+                    const clr = br>0.82 ? kWhite : br>0.45 ? kCyan : kBlue;
+                    col[i*3]=clr[0]; col[i*3+1]=clr[1]; col[i*3+2]=clr[2];
+                }
+                // Upper arm
+                const nArm  = Math.floor(count * 0.21);
+                const uSt   = nStem;
+                for (let i = 0; i < nArm; i++) {
+                    const t = Math.pow(rng(), 0.65), ii = uSt+i;
+                    pos[ii*3]  = stemX + t*R*0.82;
+                    pos[ii*3+1]= (rng()-0.5)*R*0.035;
+                    pos[ii*3+2]= R*0.06 + t*R*0.42 + (rng()-0.5)*R*0.07;
+                    const clr = rng()>0.72 ? kWhite : kCyan;
+                    col[ii*3]=clr[0]; col[ii*3+1]=clr[1]; col[ii*3+2]=clr[2];
+                }
+                // Lower arm
+                const lSt = uSt + nArm;
+                for (let i = 0; i < nArm; i++) {
+                    const t = Math.pow(rng(), 0.65), ii = lSt+i;
+                    pos[ii*3]  = stemX + t*R*0.82;
+                    pos[ii*3+1]= (rng()-0.5)*R*0.035;
+                    pos[ii*3+2]= -(R*0.06 + t*R*0.42 + (rng()-0.5)*R*0.07);
+                    const clr = rng()>0.72 ? kWhite : kCyan;
+                    col[ii*3]=clr[0]; col[ii*3+1]=clr[1]; col[ii*3+2]=clr[2];
+                }
+                // Table clusters — spreadsheet cells floating in space
+                const nTables = Math.floor(count * 0.22);
+                const tSt2 = lSt + nArm;
+                const tCenters = [
+                    {x: 0.10*R, z:  0.32*R}, {x: 0.28*R, z: -0.38*R},
+                    {x:-0.08*R, z:  0.44*R}, {x: 0.42*R, z:  0.12*R},
+                    {x:-0.38*R, z: -0.28*R}, {x: 0.12*R, z: -0.48*R},
+                    {x: 0.35*R, z:  0.38*R}, {x:-0.20*R, z: -0.44*R},
+                ];
+                for (let i = 0; i < nTables; i++) {
+                    const tc = tCenters[Math.floor(rng()*tCenters.length)];
+                    const cellW = R*0.055;
+                    const ii = tSt2+i;
+                    pos[ii*3]  = tc.x + Math.round(rng()*6)*cellW - R*0.17 + (rng()-0.5)*cellW*0.3;
+                    pos[ii*3+1]= (rng()-0.5)*R*0.02;
+                    pos[ii*3+2]= tc.z + Math.round(rng()*5)*cellW - R*0.14 + (rng()-0.5)*cellW*0.3;
+                    const br = rng();
+                    col[ii*3]=0.05+br*0.25; col[ii*3+1]=0.72+br*0.28; col[ii*3+2]=0.88+br*0.12;
+                }
+                // Pipeline sparks — orange failures, green successes
+                const sSt2 = tSt2 + nTables;
+                for (let i = sSt2; i < count; i++) {
+                    const r2 = R*0.08 + rng()*R*0.58, th = rng()*Math.PI*2;
+                    pos[i*3]  = r2*Math.cos(th);
+                    pos[i*3+1]= (rng()-0.5)*R*0.06;
+                    pos[i*3+2]= r2*Math.sin(th);
+                    const clr = rng()>0.62 ? kOrange : kGreen;
+                    col[i*3]=clr[0]; col[i*3+1]=clr[1]; col[i*3+2]=clr[2];
                 }
             } else { // irregular — multiple star-forming clumps, blue-white stars
                 const clumps = [
@@ -911,14 +1015,16 @@
             // Sombrero is famous for being seen nearly edge-on
             if (g.name === 'Sombrero (M104)') model.rotateX(Math.PI * 0.44);
 
-            // Add a bit of random tilt for visual variety
-            const rng2 = mulberry32(i * 997 + 55);
-            if (g.type === 'spiral') {
-                model.rotateX((rng2()-0.5) * 0.50);
-                model.rotateZ((rng2()-0.5) * 0.50);
-            } else {
-                model.rotateX((rng2()-0.5) * 0.70);
-                model.rotateZ((rng2()-0.5) * 0.70);
+            // Keboola galaxy: keep K upright — no random tilt
+            if (g.name !== 'Keboola') {
+                const rng2 = mulberry32(i * 997 + 55);
+                if (g.type === 'spiral') {
+                    model.rotateX((rng2()-0.5) * 0.50);
+                    model.rotateZ((rng2()-0.5) * 0.50);
+                } else {
+                    model.rotateX((rng2()-0.5) * 0.70);
+                    model.rotateZ((rng2()-0.5) * 0.70);
+                }
             }
             scene.add(model);
             galaxyModels.push(model);
