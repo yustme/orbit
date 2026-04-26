@@ -2,6 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Solar System</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; }
@@ -473,6 +474,13 @@
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
         import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
+        // Detect touch device and show appropriate instructions
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const infoInstructions = document.querySelector('#info p');
+        if (isTouchDevice && infoInstructions) {
+            infoInstructions.textContent = '1 prst: Rotace | 2 prsty: Zoom';
+        }
+
         // Scene
         const scene = new THREE.Scene();
 
@@ -725,6 +733,39 @@
                     g.addColorStop(1,   'rgba(0,0,0,0)');
                     ctx.fillStyle = g;
                     ctx.beginPath(); ctx.ellipse(0, 0, s*0.42, s*0.3, 0, 0, Math.PI*2); ctx.fill();
+                } else if (type === 'keboola') {
+                    // Outer glow in Keboola blue
+                    const glow = ctx.createRadialGradient(0, -s*0.10, 0, 0, 0, s*0.46);
+                    glow.addColorStop(0,   'rgba(60, 160, 255, 0.70)');
+                    glow.addColorStop(0.4, 'rgba(30, 100, 200, 0.28)');
+                    glow.addColorStop(1,   'rgba(0,    0,   0, 0)');
+                    ctx.fillStyle = glow;
+                    ctx.beginPath(); ctx.arc(0, 0, s*0.46, 0, Math.PI*2); ctx.fill();
+                    // Head oval (upper portion)
+                    ctx.fillStyle = 'rgba(60, 160, 255, 0.58)';
+                    ctx.beginPath();
+                    ctx.ellipse(0, -s*0.13, s*0.24, s*0.28, 0, 0, Math.PI*2);
+                    ctx.fill();
+                    // Eyes — two bright circles
+                    ctx.fillStyle = 'rgba(210, 240, 255, 0.95)';
+                    ctx.beginPath(); ctx.arc(-s*0.07, -s*0.02, s*0.038, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc( s*0.07, -s*0.02, s*0.038, 0, Math.PI*2); ctx.fill();
+                    // Arms — sweeping bezier curves outward and down
+                    ctx.strokeStyle = 'rgba(100, 195, 255, 0.55)';
+                    ctx.lineWidth = s * 0.042;
+                    ctx.lineCap = 'round';
+                    for (const sx of [-1, 1]) {
+                        ctx.beginPath();
+                        ctx.moveTo(sx*s*0.10, s*0.05);
+                        ctx.bezierCurveTo(sx*s*0.42, s*0.02, sx*s*0.40, s*0.22, sx*s*0.26, s*0.36);
+                        ctx.stroke();
+                    }
+                    // Core brightness at head center
+                    const core = ctx.createRadialGradient(0, -s*0.10, 0, 0, -s*0.10, s*0.09);
+                    core.addColorStop(0, 'rgba(215, 242, 255, 0.92)');
+                    core.addColorStop(1, 'rgba(60,  160, 255, 0)');
+                    ctx.fillStyle = core;
+                    ctx.beginPath(); ctx.arc(0, -s*0.10, s*0.09, 0, Math.PI*2); ctx.fill();
                 } else { // irregular (Magellanic Clouds)
                     const g = ctx.createRadialGradient(0, -s*0.05, 0, 0, 0, s * 0.46);
                     g.addColorStop(0,   'rgba(210,225,255,0.85)');
@@ -756,6 +797,7 @@
             { name: 'Whirlpool (M51)',  ra_h: 13.498, dec:  47.19,  type: 'spiral',    tilt:  0.2, scale:  8, opacity: 0.5 },
             { name: 'M87',              ra_h: 12.514, dec:  12.39,  type: 'elliptical',tilt:  0.0, scale:  7, opacity: 0.5 },
             { name: 'Sculptor (NGC253)',ra_h:  0.792, dec: -25.29,  type: 'spiral',    tilt:  1.1, scale: 10, opacity: 0.55 },
+            { name: 'Keboola',          ra_h:  3.141, dec: -42.00,  type: 'keboola',   tilt:  0.0, scale: 14, opacity: 0.92 },
         ];
 
         const GR = 3600;
@@ -791,6 +833,7 @@
             'Whirlpool (M51)':   { type: 'Grand Design Spiral (Sbc)',   distance: '23 million ly',    diameter: '76,000 ly',  stars: '~100 billion',  fact: 'First galaxy classified as a spiral (1845). Companion NGC 5195 is distorting its arms through tidal forces.' },
             'M87':               { type: 'Giant Elliptical (E0pec)',    distance: '53.5 million ly',  diameter: '240,000 ly', stars: '~1 trillion',   fact: 'Home of the first black hole ever photographed (2019, Event Horizon Telescope). Its plasma jet extends 5,000 light-years.' },
             'Sculptor (NGC253)': { type: 'Intermediate Spiral (SABc)',  distance: '11.4 million ly',  diameter: '90,000 ly',  stars: '~200 billion',  fact: 'One of the brightest galaxies visible from Earth. An intense starburst galaxy forming new stars at a remarkable rate.' },
+            'Keboola':           { type: 'Spreadsheet Nebula (SaaS-type Ia)', distance: '42 million rows', diameter: '1.21 TB (uncompressed)', stars: '∞ CSV files', fact: 'The only known galaxy shaped like a corporate logo. Its core is a supermassive data warehouse surrounded by billions of denormalized tables. Astronomers estimate 73% of its stars are duplicates. The orange regions are failed ETL jobs; the green ones completed successfully — eventually.' },
         };
 
         // Seeded PRNG (mulberry32)
@@ -807,7 +850,7 @@
         function createGalaxyPoints(type, seed) {
             const rng = mulberry32(seed);
             const R = 52; // galaxy radius in scene units
-            const count = (type === 'elliptical') ? 7500 : (type === 'irregular') ? 5500 : 11000;
+            const count = (type === 'keboola') ? 16000 : (type === 'elliptical') ? 7500 : (type === 'irregular') ? 5500 : 11000;
             const pos = new Float32Array(count * 3);
             const col = new Float32Array(count * 3);
 
@@ -858,6 +901,104 @@
                     pos[i*3+2] = r * Math.cos(ph);
                     const w = rng();
                     col[i*3] = 1.0; col[i*3+1] = 0.58+w*0.32; col[i*3+2] = 0.12+w*0.38;
+                }
+            } else if (type === 'keboola') {
+                // Keboola logo character: head + eyes + arms + legs, in Keboola blue (#3ca0ff)
+                const kBlue   = [0.24, 0.63, 1.00]; // #3ca0ff
+                const kLight  = [0.55, 0.83, 1.00]; // lighter blue highlight
+                const kWhite  = [0.88, 0.96, 1.00]; // white-hot core
+                const kOrange = [1.00, 0.48, 0.08]; // failed ETL jobs
+                const kGreen  = [0.18, 1.00, 0.52]; // successful transforms
+
+                // ── Head oval ────────────────────────────────────────────────────
+                // SVG center (32, 20) → galaxy (0, +20), radii 24 × 30
+                const nHead = Math.floor(count * 0.28);
+                for (let i = 0; i < nHead; i++) {
+                    const r = Math.pow(rng(), 1.7);
+                    const th = rng() * Math.PI * 2;
+                    pos[i*3]   = r * 24 * Math.cos(th);
+                    pos[i*3+1] = (rng()-0.5) * R * 0.04;
+                    pos[i*3+2] = 20 + r * 30 * Math.sin(th);
+                    const br = rng();
+                    const clr = br > 0.85 ? kWhite : br > 0.5 ? kLight : kBlue;
+                    col[i*3]=clr[0]; col[i*3+1]=clr[1]; col[i*3+2]=clr[2];
+                }
+
+                // ── Eyes (two dense circles) ──────────────────────────────────
+                // SVG left (28.6, 33.7) → galaxy (−5.5, −2.75), radius ~4.5
+                // SVG right (35.4, 33.7) → galaxy (+5.5, −2.75), radius ~4.5
+                const nEye = Math.floor(count * 0.06);
+                for (let e = 0; e < 2; e++) {
+                    const eCX = e === 0 ? -5.5 : 5.5;
+                    const eBase = nHead + e * nEye;
+                    for (let i = 0; i < nEye; i++) {
+                        const r = Math.pow(rng(), 0.6) * 4.5;
+                        const th = rng() * Math.PI * 2;
+                        const ii = eBase + i;
+                        pos[ii*3]   = eCX + r * Math.cos(th);
+                        pos[ii*3+1] = (rng()-0.5) * R * 0.02;
+                        pos[ii*3+2] = -2.75 + r * Math.sin(th);
+                        col[ii*3]=kWhite[0]; col[ii*3+1]=kWhite[1]; col[ii*3+2]=kWhite[2];
+                    }
+                }
+
+                // ── Arms (cubic bezier, sweeping outward then curving down) ──
+                const nArm = Math.floor(count * 0.16);
+                const armBase = nHead + 2 * nEye;
+                for (let a = 0; a < 2; a++) {
+                    const sg = a === 0 ? -1 : 1;
+                    const aBase = armBase + a * nArm;
+                    // Bezier: (±8,−8) → (±42,−5) → (±38,−20) → (±22,−32)
+                    const p0x = sg*8,  p0z = -8;
+                    const p1x = sg*42, p1z = -5;
+                    const p2x = sg*38, p2z = -20;
+                    const p3x = sg*22, p3z = -32;
+                    for (let i = 0; i < nArm; i++) {
+                        const t = rng();
+                        const u = 1 - t;
+                        const bx = u*u*u*p0x + 3*u*u*t*p1x + 3*u*t*t*p2x + t*t*t*p3x;
+                        const bz = u*u*u*p0z + 3*u*u*t*p1z + 3*u*t*t*p2z + t*t*t*p3z;
+                        const sc = R * 0.05 * (1 - t * 0.4);
+                        const ii = aBase + i;
+                        pos[ii*3]   = bx + (rng()-0.5)*sc*2;
+                        pos[ii*3+1] = (rng()-0.5)*R*0.03;
+                        pos[ii*3+2] = bz + (rng()-0.5)*sc;
+                        const br = rng();
+                        const clr = br > 0.68 ? kLight : kBlue;
+                        col[ii*3]=clr[0]; col[ii*3+1]=clr[1]; col[ii*3+2]=clr[2];
+                    }
+                }
+
+                // ── Legs (two streams curving inward downward) ────────────────
+                const nLeg = Math.floor(count * 0.12);
+                const legBase = armBase + 2 * nArm;
+                for (let l = 0; l < 2; l++) {
+                    const sg = l === 0 ? -1 : 1;
+                    const lBase = legBase + l * nLeg;
+                    for (let i = 0; i < nLeg; i++) {
+                        const t = Math.pow(rng(), 0.75);
+                        const lx = sg * (22 - t * 12);   // ±22 → ±10
+                        const lz = -32 - t * 20;          // −32 → −52
+                        const ii = lBase + i;
+                        pos[ii*3]   = lx + (rng()-0.5)*R*0.045;
+                        pos[ii*3+1] = (rng()-0.5)*R*0.03;
+                        pos[ii*3+2] = lz + (rng()-0.5)*R*0.04;
+                        const br = rng();
+                        const clr = br > 0.68 ? kLight : kBlue;
+                        col[ii*3]=clr[0]; col[ii*3+1]=clr[1]; col[ii*3+2]=clr[2];
+                    }
+                }
+
+                // ── Pipeline sparks ───────────────────────────────────────────
+                const spBase = legBase + 2 * nLeg;
+                for (let i = spBase; i < count; i++) {
+                    const r2 = R * 0.08 + rng() * R * 0.52;
+                    const th = rng() * Math.PI * 2;
+                    pos[i*3]   = r2 * Math.cos(th);
+                    pos[i*3+1] = (rng()-0.5) * R * 0.05;
+                    pos[i*3+2] = r2 * Math.sin(th) * 0.55 - 5;
+                    const clr = rng() > 0.62 ? kOrange : kGreen;
+                    col[i*3]=clr[0]; col[i*3+1]=clr[1]; col[i*3+2]=clr[2];
                 }
             } else { // irregular — multiple star-forming clumps, blue-white stars
                 const clumps = [
@@ -911,14 +1052,16 @@
             // Sombrero is famous for being seen nearly edge-on
             if (g.name === 'Sombrero (M104)') model.rotateX(Math.PI * 0.44);
 
-            // Add a bit of random tilt for visual variety
-            const rng2 = mulberry32(i * 997 + 55);
-            if (g.type === 'spiral') {
-                model.rotateX((rng2()-0.5) * 0.50);
-                model.rotateZ((rng2()-0.5) * 0.50);
-            } else {
-                model.rotateX((rng2()-0.5) * 0.70);
-                model.rotateZ((rng2()-0.5) * 0.70);
+            // Keboola galaxy: keep K upright — no random tilt
+            if (g.name !== 'Keboola') {
+                const rng2 = mulberry32(i * 997 + 55);
+                if (g.type === 'spiral') {
+                    model.rotateX((rng2()-0.5) * 0.50);
+                    model.rotateZ((rng2()-0.5) * 0.50);
+                } else {
+                    model.rotateX((rng2()-0.5) * 0.70);
+                    model.rotateZ((rng2()-0.5) * 0.70);
+                }
             }
             scene.add(model);
             galaxyModels.push(model);

@@ -1,0 +1,12 @@
+{
+  "name": "orbit-solar-system",
+  "version": "1.0.0",
+  "description": "3D Solar System visualization",
+  "devDependencies": {
+    "@playwright/test": "^1.44.0"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  }
+}
