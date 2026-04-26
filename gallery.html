@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mission Photo Gallery — 3D Solar System</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #000;
+            color: #fff;
+            font-family: sans-serif;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 40px 40px 0;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        header a {
+            color: #aaddff;
+            text-decoration: none;
+            font-size: 0.78em;
+            letter-spacing: 2px;
+            border: 1px solid rgba(100,180,255,0.3);
+            border-radius: 4px;
+            padding: 6px 16px;
+            transition: background 0.15s, border-color 0.15s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        header a:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
+
+        header h1 {
+            font-size: 1.1em;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        header p {
+            font-size: 0.72em;
+            opacity: 0.38;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        .mission-section {
+            padding: 48px 40px 0;
+        }
+
+        .mission-header {
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            padding-bottom: 14px;
+        }
+
+        .mission-name {
+            font-size: 1.05em;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #aaddff;
+            font-weight: 300;
+        }
+
+        .mission-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2px;
+        }
+
+        .photo-card {
+            position: relative;
+            aspect-ratio: 4/3;
+            overflow: hidden;
+            cursor: pointer;
+            background: #0a0a12;
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s ease, filter 0.5s ease;
+            filter: brightness(0.85);
+        }
+
+        .photo-card:hover img {
+            transform: scale(1.04);
+            filter: brightness(1);
+        }
+
+        .photo-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(transparent 30%, rgba(0,0,0,0.92) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .photo-card:hover .photo-overlay {
+            opacity: 1;
+        }
+
+        .photo-always {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.75) 70%);
+            padding: 32px 16px 14px;
+        }
+
+        .photo-planet {
+            font-size: 0.95em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #aaddff;
+            font-weight: 300;
+        }
+
+        .photo-date {
+            font-size: 0.68em;
+            opacity: 0.45;
+            letter-spacing: 1px;
+            margin-top: 3px;
+        }
+
+        .photo-caption {
+            font-size: 0.75em;
+            line-height: 1.6;
+            opacity: 0.75;
+            margin-top: 8px;
+        }
+
+        .photo-approach {
+            font-size: 0.68em;
+            opacity: 0.45;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .photo-approach span { opacity: 0.6; margin-right: 6px; }
+
+        .photo-credit {
+            font-size: 0.62em;
+            opacity: 0.3;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        footer {
+            padding: 60px 40px 40px;
+            font-size: 0.7em;
+            opacity: 0.25;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        /* Lightbox */
+        #lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.94);
+            z-index: 100;
+            cursor: zoom-out;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        #lightbox.open { display: flex; }
+
+        #lb-img {
+            max-width: 90vw;
+            max-height: 75vh;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 0 80px rgba(0,0,0,0.9);
+        }
+
+        #lb-info {
+            margin-top: 22px;
+            text-align: center;
+            max-width: 680px;
+            padding: 0 20px;
+        }
+
+        #lb-title {
+            font-size: 1.1em;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #aaddff;
+            font-weight: 300;
+            margin-bottom: 8px;
+        }
+
+        #lb-caption {
+            font-size: 0.8em;
+            line-height: 1.65;
+            opacity: 0.65;
+        }
+
+        #lb-meta {
+            display: flex;
+            gap: 28px;
+            justify-content: center;
+            margin-top: 10px;
+            font-size: 0.72em;
+            opacity: 0.4;
+            letter-spacing: 0.5px;
+        }
+
+        #lb-credit {
+            margin-top: 8px;
+            font-size: 0.65em;
+            opacity: 0.25;
+            font-style: italic;
+        }
+
+        #lb-close {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            background: none;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            font-size: 1.1em;
+            width: 34px; height: 34px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0.5;
+            transition: opacity 0.15s;
+        }
+        #lb-close:hover { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="index.html">&#8592; Solar System</a>
+    <div>
+        <h1>Mission Photo Gallery</h1>
+        <p>25 encounters &nbsp;&middot;&nbsp; 11 missions &nbsp;&middot;&nbsp; hover to read &nbsp;&middot;&nbsp; click to enlarge</p>
+    </div>
+</header>
+
+<div id="gallery"></div>
+
+<footer>All images courtesy NASA / JPL-Caltech / ESA and respective mission teams.</footer>
+
+<!-- Lightbox -->
+<div id="lightbox">
+    <button id="lb-close">&#10005;</button>
+    <img id="lb-img" src="" alt="">
+    <div id="lb-info">
+        <div id="lb-title"></div>
+        <div id="lb-caption"></div>
+        <div id="lb-meta">
+            <div id="lb-date"></div>
+            <div id="lb-approach"></div>
+        </div>
+        <div id="lb-credit"></div>
+    </div>
+</div>
+
+<script>
+const SC_COLORS = {
+    "Voyager 1":    "#ffaa44",
+    "Voyager 2":    "#ff7744",
+    "Pioneer 10":   "#aaaaff",
+    "Pioneer 11":   "#8888ff",
+    "New Horizons": "#44ddff",
+    "Cassini":      "#ffdd88",
+    "Galileo":      "#88ffaa",
+    "Juno":         "#ff88bb",
+    "MESSENGER":    "#ccaaff",
+    "Rosetta":      "#aaffdd",
+    "Dawn":         "#ffcc66",
+    "OSIRIS-REx":   "#ff9966",
+};
+
+const SC_FLYBY_PHOTOS = {
+    "Voyager 1": [
+        {
+            date: "1979-03-05",
+            planet: "Jupiter",
+            img: "images/voyager1_jupiter.jpg",
+            approach: "349,000 km",
+            caption: "Voyager 1's view of Jupiter's Great Red Spot — a storm larger than Earth that has raged for centuries. Taken March 1979 during closest approach.",
+            credit: "NASA / JPL — PIA00014",
+        },
+        {
+            date: "1980-11-12",
+            planet: "Saturn",
+            img: "images/voyager1_saturn.jpg",
+            approach: "124,000 km",
+            caption: "Crescent Saturn backlit by the Sun, captured by Voyager 1 after its closest approach in November 1980. The shadow of the rings falls across the cloud tops.",
+            credit: "NASA / JPL — PIA00335",
+        },
+        {
+            date: "1990-02-14",
+            planet: "Earth — Pale Blue Dot",
+            img: "images/voyager1_earth.jpg",
+            approach: "6.06 billion km",
+            caption: "At Carl Sagan's request, Voyager 1 turned its camera back toward the Sun on February 14, 1990. Earth appears as a pale blue dot less than a pixel wide — suspended in a sunbeam, 6 billion km away.",
+            credit: "NASA / JPL — PIA00452",
+        },
+    ],
+    "Voyager 2": [
+        {
+            date: "1979-07-09",
+            planet: "Jupiter",
+            img: "images/voyager2_jupiter.jpg",
+            approach: "570,000 km",
+            caption: "Voyager 2 photographed Jupiter's southern hemisphere on June 25, 1979 — two weeks before closest approach. Io transits the turbulent cloud bands.",
+            credit: "NASA / JPL — PIA00371",
+        },
+        {
+            date: "1981-08-26",
+            planet: "Saturn",
+            img: "images/voyager2_saturn.jpg",
+            approach: "101,000 km",
+            caption: "True-color view of Saturn captured by Voyager 2 on July 21, 1981, five weeks before closest approach. Moons Rhea and Dione are visible as blue dots.",
+            credit: "NASA / JPL — PIA00030",
+        },
+        {
+            date: "1986-01-24",
+            planet: "Uranus",
+            img: "images/voyager2_uranus.jpg",
+            approach: "81,500 km",
+            caption: "Uranus as seen by Voyager 2 — the only spacecraft ever to visit the ice giant. The featureless disk shows the planet's extreme axial tilt.",
+            credit: "NASA / JPL-Caltech — PIA18182",
+        },
+        {
+            date: "1989-08-25",
+            planet: "Neptune",
+            img: "images/voyager2_neptune.jpg",
+            approach: "4,950 km",
+            caption: "Neptune photographed by Voyager 2 shortly before its closest approach — the only visit in history. The Great Dark Spot is clearly visible.",
+            credit: "NASA / JPL — PIA01492",
+        },
+        {
+            date: "1989-08-25",
+            planet: "Triton",
+            img: "images/voyager2_triton.jpg",
+            approach: "40,000 km",
+            caption: "The surface of Triton — Neptune's largest moon and the coldest body visited by a spacecraft. Voyager 2 found active nitrogen geysers erupting from the south polar cap. This remains the only close-up of Triton ever taken.",
+            credit: "NASA / JPL — PIA00317",
+        },
+    ],
+    "Pioneer 10": [
+        {
+            date: "1973-12-01",
+            planet: "Jupiter — Great Red Spot",
+            img: "images/pioneer10_jupiter_grs.jpg",
+            approach: "2,695,000 km",
+            caption: "Pioneer 10's famous color view of Jupiter from 2.7 million km — two days before closest approach. The Great Red Spot (25,000 miles wide) is clearly visible. Pioneer had only two color filters, making this an approximate reconstruction. It was the first close-up color image of Jupiter ever taken.",
+            credit: "NASA / Ames — GPN-2000-001698",
+        },
+        {
+            date: "1973-12-03",
+            planet: "Jupiter — Closest Approach",
+            img: "images/pioneer10_jupiter_approach.jpg",
+            approach: "354,250 km",
+            caption: "Jupiter photographed by Pioneer 10 at closest approach on December 3, 1973 — showing the planet as a crescent from 354,250 km. Europa is visible as a bright dot. This was the sharpest image of Jupiter ever taken at that time.",
+            credit: "NASA / Ames / University of Arizona — ARC-1973-AC73-9278",
+        },
+    ],
+    "New Horizons": [
+        {
+            date: "2015-07-14",
+            planet: "Pluto",
+            img: "images/nh_pluto.jpg",
+            approach: "12,500 km",
+            caption: "Enhanced color view of Pluto captured by New Horizons on July 14, 2015. The heart-shaped Tombaugh Regio nitrogen ice plain dominates the encounter hemisphere.",
+            credit: "NASA / JHUAPL / SwRI — PIA19952",
+        },
+        {
+            date: "2019-01-01",
+            planet: "Arrokoth",
+            img: "images/nh_arrokoth.jpg",
+            approach: "3,500 km",
+            caption: "Arrokoth (2014 MU69), the most distant object ever explored by a spacecraft. This contact binary Kuiper Belt Object — nicknamed 'Ultima Thule' — consists of two lobes gently merged together. New Horizons flew past on January 1, 2019.",
+            credit: "NASA / JHUAPL / SwRI — ann19001a",
+        },
+    ],
+    "Cassini": [
+        {
+            date: "2004-07-01",
+            planet: "Saturn",
+            img: "images/cassini_saturn.jpg",
+            approach: "Orbit insertion",
+            caption: "On July 19, 2013, Cassini captured Earth (the pale blue dot in the rings' gap) while Saturn eclipsed the Sun — the first time humanity knew in advance to wave at the sky.",
+            credit: "NASA / JPL-Caltech / SSI — PIA17172",
+        },
+        {
+            date: "2005-02-17",
+            planet: "Enceladus",
+            img: "images/cassini_enceladus.jpg",
+            approach: "1,264 km",
+            caption: "Cassini captured Enceladus backlit by Saturn's reflected light, revealing towering geysers of water ice erupting from the south polar region. This discovery confirmed a liquid water ocean beneath the icy crust — one of the solar system's best candidates for extraterrestrial life.",
+            credit: "NASA / JPL / Space Science Institute — PIA07758",
+        },
+    ],
+    "Galileo": [
+        {
+            date: "1993-08-28",
+            planet: "Asteroid Ida",
+            img: "images/galileo_ida.jpg",
+            approach: "2,390 km",
+            caption: "Galileo discovered that asteroid Ida has its own moon — Dactyl, visible to the right. This was the first confirmed asteroid satellite ever found.",
+            credit: "NASA / JPL — PIA00333",
+        },
+        {
+            date: "1995-12-07",
+            planet: "Jupiter",
+            img: "images/galileo_jupiter.jpg",
+            approach: "Orbit insertion",
+            caption: "Galileo's true-color image of Jupiter's Great Red Spot during its prime mission. Galileo orbited Jupiter for nearly 8 years, making 35 orbits before a deliberate deorbit in 2003.",
+            credit: "NASA / JPL — PIA00708",
+        },
+        {
+            date: "1997-02-20",
+            planet: "Europa",
+            img: "images/galileo_europa.jpg",
+            approach: "586 km",
+            caption: "Galileo's mosaic of Europa's fractured icy surface reveals a network of ridges, bands, and chaos terrain hinting at a global subsurface ocean. Europa is considered one of the most promising places to search for life beyond Earth.",
+            credit: "NASA / JPL-Caltech — PIA19048",
+        },
+    ],
+    "Juno": [
+        {
+            date: "2016-07-04",
+            planet: "Jupiter",
+            img: "images/juno_jupiter.jpg",
+            approach: "Orbit insertion",
+            caption: "JunoCam image of Jupiter's turbulent southern hemisphere showing the chaotic cloud systems and the edge of the Great Red Spot. Juno entered polar orbit on July 4, 2016.",
+            credit: "NASA / JPL-Caltech / SwRI / MSSS — PIA22946",
+        },
+        {
+            date: "2017-02-02",
+            planet: "Jupiter South Pole",
+            img: "images/juno_jupiter_polar.jpg",
+            approach: "4,300 km",
+            caption: "Juno's first close look at Jupiter's south pole reveals a chaotic cluster of oval storms unlike anything seen before in the solar system. Each storm is the size of Earth. The false-color infrared mosaic was taken during Juno's third science orbit.",
+            credit: "NASA / JPL-Caltech / SwRI / MSSS — PIA21380",
+        },
+    ],
+    "MESSENGER": [
+        {
+            date: "2011-03-18",
+            planet: "Mercury",
+            img: "images/messenger_mercury.jpg",
+            approach: "Orbit insertion",
+            caption: "MESSENGER's mosaic of Mercury's Caloris Basin — one of the largest impact craters in the solar system at 1,550 km across. MESSENGER was the first spacecraft to orbit Mercury.",
+            credit: "NASA / JHUAPL / CIW — PIA19213",
+        },
+    ],
+    "Rosetta": [
+        {
+            date: "2014-08-06",
+            planet: "Comet 67P",
+            img: "images/rosetta_67p.jpg",
+            approach: "Rendezvous",
+            caption: "The rugged, double-lobed nucleus of Comet 67P/Churyumov–Gerasimenko captured by Rosetta's OSIRIS camera. Rosetta was the first mission to orbit and land on a comet.",
+            credit: "ESA / Rosetta / MPS — PIA18596",
+        },
+        {
+            date: "2014-11-12",
+            planet: "67P Surface — Philae",
+            img: "images/rosetta_philae.jpg",
+            approach: "Surface",
+            caption: "The comet's surface as seen by the Philae lander descending toward touchdown on November 12, 2014 — humanity's first soft landing on a comet. Philae's ROLIS downward-looking camera captured this image from about 40 meters altitude.",
+            credit: "ESA / Rosetta / Philae / ROLIS / DLR — PIA18878",
+        },
+    ],
+    "Dawn": [
+        {
+            date: "2011-07-16",
+            planet: "Vesta",
+            img: "images/dawn_vesta.jpg",
+            approach: "Orbit insertion",
+            caption: "Dawn's enhanced view of Vesta's south polar region, dominated by the massive Rheasilvia impact basin. Dawn was the first spacecraft to orbit two extraterrestrial bodies.",
+            credit: "NASA / JPL-Caltech / UCLA / MPS / DLR / IDA — PIA14315",
+        },
+        {
+            date: "2015-03-06",
+            planet: "Ceres",
+            img: "images/dawn_ceres.jpg",
+            approach: "Orbit insertion",
+            caption: "Dawn's view of Occator Crater on Ceres, famous for its bright salt deposits — the brightest features on any world in the outer solar system. Ceres is the largest object in the asteroid belt.",
+            credit: "NASA / JPL-Caltech / UCLA / MPS / DLR / IDA — PIA20350",
+        },
+        {
+            date: "2016-06-14",
+            planet: "Ceres — Ahuna Mons",
+            img: "images/dawn_ahuna_mons.jpg",
+            approach: "385 km",
+            caption: "Ahuna Mons — a 4 km tall cryovolcano on Ceres seen in a simulated perspective view from Dawn. Bright streaks on its slopes are thought to be salt deposited by oozing brines. Ahuna Mons is the most recent cryovolcano discovered in the solar system.",
+            credit: "NASA / JPL-Caltech / UCLA / MPS / DLR / IDA — PIA20349",
+        },
+    ],
+    "OSIRIS-REx": [
+        {
+            date: "2018-12-03",
+            planet: "Bennu",
+            img: "images/osirisrex_bennu.jpg",
+            approach: "Orbit insertion",
+            caption: "A detailed mosaic of asteroid Bennu's northern hemisphere captured by OSIRIS-REx after arrival in December 2018. The boulder-strewn surface surprised scientists expecting smooth terrain. OSIRIS-REx collected a sample from Bennu's surface and returned it to Earth in September 2023.",
+            credit: "NASA / Goddard / University of Arizona",
+        },
+    ],
+};
+
+function formatDate(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+    });
+}
+
+const gallery = document.getElementById('gallery');
+
+for (const [sc, photos] of Object.entries(SC_FLYBY_PHOTOS)) {
+    const color = SC_COLORS[sc] || '#aaddff';
+
+    const section = document.createElement('div');
+    section.className = 'mission-section';
+
+    const mh = document.createElement('div');
+    mh.className = 'mission-header';
+    mh.innerHTML = `
+        <div class="mission-dot" style="background:${color}"></div>
+        <div class="mission-name">${sc}</div>
+        <div style="font-size:0.65em;opacity:0.3;letter-spacing:1px">${photos.length} photo${photos.length > 1 ? 's' : ''}</div>
+    `;
+    section.appendChild(mh);
+
+    const grid = document.createElement('div');
+    grid.className = 'photo-grid';
+
+    for (const p of photos) {
+        const card = document.createElement('div');
+        card.className = 'photo-card';
+        card.innerHTML = `
+            <img src="${p.img}" alt="${sc} — ${p.planet}" loading="lazy">
+            <div class="photo-always">
+                <div class="photo-planet">${p.planet}</div>
+                <div class="photo-date">${formatDate(p.date)}</div>
+            </div>
+            <div class="photo-overlay">
+                <div class="photo-caption">${p.caption}</div>
+                <div class="photo-approach"><span>Closest approach</span>${p.approach}</div>
+                <div class="photo-credit">${p.credit}</div>
+            </div>
+        `;
+        card.addEventListener('click', () => openLightbox(sc, p));
+        grid.appendChild(card);
+    }
+
+    section.appendChild(grid);
+    gallery.appendChild(section);
+}
+
+// Lightbox
+const lb       = document.getElementById('lightbox');
+const lbImg    = document.getElementById('lb-img');
+const lbTitle  = document.getElementById('lb-title');
+const lbCaption= document.getElementById('lb-caption');
+const lbDate   = document.getElementById('lb-date');
+const lbAppr   = document.getElementById('lb-approach');
+const lbCredit = document.getElementById('lb-credit');
+
+function openLightbox(sc, p) {
+    lbImg.src = p.img;
+    lbImg.alt = `${sc} — ${p.planet}`;
+    lbTitle.textContent = `${sc} — ${p.planet}`;
+    lbCaption.textContent = p.caption;
+    lbDate.textContent = formatDate(p.date);
+    lbAppr.textContent = p.approach;
+    lbCredit.textContent = p.credit;
+    lb.classList.add('open');
+}
+
+function closeLightbox() { lb.classList.remove('open'); }
+
+document.getElementById('lb-close').addEventListener('click', closeLightbox);
+lb.addEventListener('click', e => { if (e.target === lb || e.target === lbImg) closeLightbox(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+</script>
+</body>
+</html>

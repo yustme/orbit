@@ -18,6 +18,24 @@
         }
         #info h1 { font-size: 1.1em; margin: 0 0 4px; letter-spacing: 2px; text-transform: uppercase; }
         #info p { font-size: 0.75em; margin: 0; opacity: 0.5; }
+        #gallery-link {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            pointer-events: all;
+            z-index: 10;
+            color: #aaddff;
+            text-decoration: none;
+            font-family: sans-serif;
+            font-size: 0.72em;
+            letter-spacing: 2px;
+            border: 1px solid rgba(100,180,255,0.3);
+            border-radius: 4px;
+            padding: 6px 14px;
+            background: rgba(0,0,0,0.55);
+            transition: background 0.15s, border-color 0.15s;
+        }
+        #gallery-link:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
         #legend {
             position: absolute;
             bottom: 24px;
@@ -115,6 +133,27 @@
             border-radius: 10px;
             overflow: hidden;
         }
+        #flyby-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 30px;
+            height: 30px;
+            background: rgba(0,0,0,0.55);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 50%;
+            color: rgba(255,255,255,0.75);
+            font-size: 1.1em;
+            line-height: 1;
+            cursor: pointer;
+            pointer-events: all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s;
+            z-index: 11;
+        }
+        #flyby-close:hover { background: rgba(0,0,0,0.85); color: #fff; }
         #flyby-panel img {
             width: 100%;
             height: 100%;
@@ -136,6 +175,15 @@
             color: #aaddff;
             margin-bottom: 10px;
             font-weight: 300;
+        }
+        #flyby-panel .fp-planet-link {
+            cursor: pointer;
+            border-bottom: 1px solid rgba(170,210,255,0.45);
+            transition: color 0.15s, border-color 0.15s;
+        }
+        #flyby-panel .fp-planet-link:hover {
+            color: #ffffff;
+            border-color: rgba(255,255,255,0.7);
         }
         #flyby-panel .fp-meta {
             display: flex;
@@ -197,24 +245,6 @@
             z-index: 20;
         }
         #back-btn:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
-        #cockpit-btn {
-            position: absolute;
-            top: 60px;
-            right: 20px;
-            display: none;
-            background: rgba(0,0,0,0.7);
-            color: #aaddff;
-            border: 1px solid rgba(100,180,255,0.3);
-            border-radius: 4px;
-            padding: 7px 16px;
-            font-family: sans-serif;
-            font-size: 0.78em;
-            letter-spacing: 1px;
-            cursor: pointer;
-            z-index: 20;
-        }
-        #cockpit-btn:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
-        #cockpit-btn.active { background: rgba(10,40,80,0.9); border-color: #4488ff; color: #88ccff; }
         #solar-marker {
             position: absolute;
             display: none;
@@ -248,20 +278,6 @@
             background: rgba(100,180,255,0.4);
             transform-origin: top center;
         }
-        #cockpit-hint {
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: none;
-            color: rgba(255,255,255,0.45);
-            font-family: sans-serif;
-            font-size: 0.72em;
-            letter-spacing: 1px;
-            pointer-events: none;
-            z-index: 10;
-            white-space: nowrap;
-        }
         #time-controls {
             position: absolute;
             bottom: 24px;
@@ -293,11 +309,59 @@
             flex-shrink: 0;
         }
         #play-btn:hover { border-color: rgba(100,180,255,0.6); color: #aaddff; }
+        #slider-wrap {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
         #time-slider {
             width: 340px;
             cursor: pointer;
             accent-color: #4488ff;
         }
+        #photo-markers {
+            position: relative;
+            height: 22px;
+            pointer-events: none;
+        }
+        .pm-icon {
+            position: absolute;
+            transform: translateX(-50%);
+            cursor: pointer;
+            pointer-events: all;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            opacity: 0.75;
+            transition: opacity 0.12s, transform 0.12s;
+        }
+        .pm-icon:hover { opacity: 1; transform: translateX(-50%) translateY(-2px); }
+        .pm-icon-img {
+            font-size: 13px;
+            line-height: 1;
+        }
+        .pm-icon-tick {
+            width: 1px;
+            height: 5px;
+            background: rgba(255,180,60,0.7);
+        }
+        .pm-icon-label {
+            display: none;
+            position: absolute;
+            bottom: 26px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            color: #ffdd88;
+            font-size: 0.68em;
+            white-space: nowrap;
+            padding: 3px 7px;
+            border-radius: 3px;
+            pointer-events: none;
+        }
+        .pm-icon:hover .pm-icon-label { display: block; }
         #date-display {
             min-width: 114px;
             text-align: center;
@@ -336,10 +400,12 @@
         <p>LMB: Rotate &nbsp;|&nbsp; Scroll: Zoom &nbsp;|&nbsp; RMB: Pan</p>
     </div>
 
+    <a id="gallery-link" href="gallery.html">Photos &#8599;</a>
     <div id="tooltip"></div>
     <div id="galaxy-info"></div>
     <div id="flyby-panel">
         <img id="flyby-img" src="" alt="">
+        <button id="flyby-close">&#x2715;</button>
         <div class="fp-overlay">
             <div class="fp-title" id="flyby-title"></div>
             <div class="fp-meta">
@@ -350,8 +416,6 @@
         </div>
     </div>
     <button id="back-btn">&#8592; Back to Solar System</button>
-    <button id="cockpit-btn">&#128752; Cockpit View</button>
-    <div id="cockpit-hint">Drag to look around &nbsp;|&nbsp; ESC to exit</div>
     <div id="solar-marker">
         <div id="solar-dot"></div>
         <div id="solar-line"></div>
@@ -360,7 +424,10 @@
 
     <div id="time-controls">
         <button id="play-btn">&#9654;</button>
-        <input type="range" id="time-slider" min="-10225" max="9610" value="9610" step="1">
+        <div id="slider-wrap">
+            <div id="photo-markers"></div>
+            <input type="range" id="time-slider" min="-10225" max="9610" value="9610" step="1">
+        </div>
         <div id="date-display">Apr 22, 2026</div>
         <select id="speed-select">
             <option value="0.1">0.1 d/frame</option>
@@ -942,8 +1009,7 @@
         document.getElementById('back-btn').addEventListener('click', flyBack);
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                if (cockpit.active) exitCockpit();
-                else if (flyState.inGalaxyView) flyBack();
+                if (flyState.inGalaxyView) flyBack();
             }
         });
 
@@ -1186,7 +1252,7 @@
                 mesh, name: d.name, a, b, c, e: d.e, incRad,
                 Omega: d.Omega || 0, omega: d.omega || 0, inc: d.inc || 0,
                 speed: BASE_SPEED / d.period,
-                angle: Math.random() * Math.PI * 2
+                angle: Math.random() * Math.PI * 2,
             };
         }
 
@@ -1311,6 +1377,7 @@
             "Voyager 1": [
                 { date: "1979-03-05", label: "Jupiter flyby" },
                 { date: "1980-11-12", label: "Saturn flyby" },
+                { date: "1990-02-14", label: "Pale Blue Dot" },
             ],
             "Voyager 2": [
                 { date: "1979-07-09", label: "Jupiter flyby" },
@@ -1319,6 +1386,7 @@
                 { date: "1989-08-25", label: "Neptune flyby" },
             ],
             "Pioneer 10": [
+                { date: "1973-12-01", label: "Jupiter approach" },
                 { date: "1973-12-03", label: "Jupiter flyby" },
             ],
             "Pioneer 11": [
@@ -1336,6 +1404,7 @@
                 { date: "1999-08-18", label: "Earth flyby" },
                 { date: "2000-12-30", label: "Jupiter flyby" },
                 { date: "2004-07-01", label: "Saturn orbit insertion" },
+                { date: "2005-02-17", label: "Enceladus flyby I" },
             ],
             "Juno": [
                 { date: "2013-10-09", label: "Earth flyby" },
@@ -1357,6 +1426,7 @@
                 { date: "2009-11-13", label: "Earth flyby III" },
                 { date: "2010-07-10", label: "Lutetia flyby" },
                 { date: "2014-08-06", label: "67P rendezvous" },
+                { date: "2014-11-12", label: "Philae landing" },
             ],
             "Galileo": [
                 { date: "1990-02-09", label: "Venus flyby" },
@@ -1364,6 +1434,7 @@
                 { date: "1992-12-08", label: "Earth flyby II" },
                 { date: "1993-08-28", label: "Ida flyby" },
                 { date: "1995-12-07", label: "Jupiter orbit insertion" },
+                { date: "1997-02-20", label: "Europa flyby" },
             ],
             "Ulysses": [
                 { date: "1992-02-08", label: "Jupiter flyby" },
@@ -1379,6 +1450,7 @@
                 { date: "2009-02-17", label: "Mars flyby" },
                 { date: "2011-07-16", label: "Vesta orbit insertion" },
                 { date: "2015-03-06", label: "Ceres orbit insertion" },
+                { date: "2016-06-14", label: "Ahuna Mons survey" },
             ],
             "Hayabusa2": [
                 { date: "2015-12-03", label: "Earth flyby" },
@@ -1418,7 +1490,7 @@
                     planet: "Jupiter",
                     img: "images/voyager1_jupiter.jpg",
                     approach: "349,000 km",
-                    caption: "Voyager 1's view of Jupiter's Great Red Spot — a storm larger than Earth that has raged for centuries. Taken March 1979 during closest approach.",
+                    caption: "Voyager 1\'s view of Jupiter\'s Great Red Spot — a storm larger than Earth that has raged for centuries. Taken March 1979 during closest approach.",
                     credit: "NASA / JPL — PIA00014",
                     windowDays: 25,
                 },
@@ -1431,6 +1503,15 @@
                     credit: "NASA / JPL — PIA00335",
                     windowDays: 25,
                 },
+                {
+                    date: "1990-02-14",
+                    planet: "Earth — Pale Blue Dot",
+                    img: "images/voyager1_earth.jpg",
+                    approach: "6.06 billion km",
+                    caption: "At Carl Sagan\'s request, Voyager 1 turned its camera back toward the Sun on February 14, 1990. Earth appears as a pale blue dot less than a pixel wide — suspended in a sunbeam, 6 billion km away.",
+                    credit: "NASA / JPL — PIA00452",
+                    windowDays: 20,
+                },
             ],
             "Voyager 2": [
                 {
@@ -1438,7 +1519,7 @@
                     planet: "Jupiter",
                     img: "images/voyager2_jupiter.jpg",
                     approach: "570,000 km",
-                    caption: "Voyager 2 photographed Jupiter's southern hemisphere on June 25, 1979 — two weeks before closest approach. Io transits the turbulent cloud bands.",
+                    caption: "Voyager 2 photographed Jupiter\'s southern hemisphere on June 25, 1979 — two weeks before closest approach. Io transits the turbulent cloud bands.",
                     credit: "NASA / JPL — PIA00371",
                     windowDays: 30,
                 },
@@ -1456,7 +1537,7 @@
                     planet: "Uranus",
                     img: "images/voyager2_uranus.jpg",
                     approach: "81,500 km",
-                    caption: "Uranus as seen by Voyager 2 — the only spacecraft ever to visit the ice giant. The featureless disk shows the planet's extreme axial tilt.",
+                    caption: "Uranus as seen by Voyager 2 — the only spacecraft ever to visit the ice giant. The featureless disk shows the planet\'s extreme axial tilt.",
                     credit: "NASA / JPL-Caltech — PIA18182",
                     windowDays: 30,
                 },
@@ -1469,15 +1550,33 @@
                     credit: "NASA / JPL — PIA01492",
                     windowDays: 30,
                 },
+                {
+                    date: "1989-08-25",
+                    planet: "Triton",
+                    img: "images/voyager2_triton.jpg",
+                    approach: "40,000 km",
+                    caption: "The surface of Triton — Neptune\'s largest moon and the coldest body visited by a spacecraft. Voyager 2 found active nitrogen geysers erupting from the south polar cap. This remains the only close-up of Triton ever taken.",
+                    credit: "NASA / JPL — PIA00317",
+                    windowDays: 30,
+                },
             ],
             "Pioneer 10": [
                 {
+                    date: "1973-12-01",
+                    planet: "Jupiter — Great Red Spot",
+                    img: "images/pioneer10_jupiter_grs.jpg",
+                    approach: "2,695,000 km",
+                    caption: "Pioneer 10\'s famous color view of Jupiter from 2.7 million km — two days before closest approach. The Great Red Spot is clearly visible. It was the first close-up color image of Jupiter ever taken.",
+                    credit: "NASA / Ames — GPN-2000-001698",
+                    windowDays: 10,
+                },
+                {
                     date: "1973-12-03",
-                    planet: "Jupiter",
-                    img: "images/pioneer10_jupiter.jpg",
-                    approach: "130,000 km",
-                    caption: "Pioneer 10 made humanity's first close encounter with Jupiter in December 1973, returning the first detailed images of the giant planet and its radiation belts.",
-                    credit: "NASA / Ames — ARC-1978-A78-0077-4",
+                    planet: "Jupiter — Closest Approach",
+                    img: "images/pioneer10_jupiter_approach.jpg",
+                    approach: "354,250 km",
+                    caption: "Jupiter photographed by Pioneer 10 at closest approach on December 3, 1973. Europa is visible as a bright dot. This was the sharpest image of Jupiter ever taken at that time.",
+                    credit: "NASA / Ames / University of Arizona — ARC-1973-AC73-9278",
                     windowDays: 25,
                 },
             ],
@@ -1491,6 +1590,15 @@
                     credit: "NASA / JHUAPL / SwRI — PIA19952",
                     windowDays: 20,
                 },
+                {
+                    date: "2019-01-01",
+                    planet: "Arrokoth",
+                    img: "images/nh_arrokoth.jpg",
+                    approach: "3,500 km",
+                    caption: "Arrokoth (2014 MU69), the most distant object ever explored by a spacecraft. This contact binary Kuiper Belt Object consists of two lobes gently merged together. New Horizons flew past on January 1, 2019.",
+                    credit: "NASA / JHUAPL / SwRI — ann19001a",
+                    windowDays: 15,
+                },
             ],
             "Cassini": [
                 {
@@ -1498,15 +1606,24 @@
                     planet: "Saturn",
                     img: "images/cassini_saturn.jpg",
                     approach: "Orbit insertion",
-                    caption: "On July 19, 2013, Cassini captured Earth (the pale blue dot in the rings' gap) while Saturn eclipsed the Sun — the first time humanity knew in advance to wave at the sky.",
+                    caption: "On July 19, 2013, Cassini captured Earth (the pale blue dot in the rings\' gap) while Saturn eclipsed the Sun — the first time humanity knew in advance to wave at the sky.",
                     credit: "NASA / JPL-Caltech / SSI — PIA17172",
                     windowDays: 60,
+                },
+                {
+                    date: "2005-02-17",
+                    planet: "Enceladus",
+                    img: "images/cassini_enceladus.jpg",
+                    approach: "1,264 km",
+                    caption: "Cassini captured Enceladus backlit by Saturn\'s reflected light, revealing towering geysers of water ice erupting from the south polar region. This discovery confirmed a liquid water ocean beneath the icy crust.",
+                    credit: "NASA / JPL / Space Science Institute — PIA07758",
+                    windowDays: 20,
                 },
             ],
             "Galileo": [
                 {
                     date: "1993-08-28",
-                    planet: "Ida",
+                    planet: "Asteroid Ida",
                     img: "images/galileo_ida.jpg",
                     approach: "2,390 km",
                     caption: "Galileo discovered that asteroid Ida has its own moon — Dactyl, visible to the right. This was the first confirmed asteroid satellite ever found.",
@@ -1518,9 +1635,18 @@
                     planet: "Jupiter",
                     img: "images/galileo_jupiter.jpg",
                     approach: "Orbit insertion",
-                    caption: "Galileo's true-color image of Jupiter's Great Red Spot during its prime mission. Galileo orbited Jupiter for nearly 8 years, making 35 orbits before a deliberate deorbit in 2003.",
+                    caption: "Galileo\'s true-color image of Jupiter\'s Great Red Spot during its prime mission. Galileo orbited Jupiter for nearly 8 years, making 35 orbits before a deliberate deorbit in 2003.",
                     credit: "NASA / JPL — PIA00708",
                     windowDays: 30,
+                },
+                {
+                    date: "1997-02-20",
+                    planet: "Europa",
+                    img: "images/galileo_europa.jpg",
+                    approach: "586 km",
+                    caption: "Galileo\'s mosaic of Europa\'s fractured icy surface reveals a network of ridges, bands, and chaos terrain hinting at a global subsurface ocean. Europa is considered one of the most promising places to search for life beyond Earth.",
+                    credit: "NASA / JPL-Caltech — PIA19048",
+                    windowDays: 15,
                 },
             ],
             "Juno": [
@@ -1529,9 +1655,18 @@
                     planet: "Jupiter",
                     img: "images/juno_jupiter.jpg",
                     approach: "Orbit insertion",
-                    caption: "JunoCam image of Jupiter's turbulent southern hemisphere showing the chaotic cloud systems and the edge of the Great Red Spot. Juno entered polar orbit on July 4, 2016.",
+                    caption: "JunoCam image of Jupiter\'s turbulent southern hemisphere showing the chaotic cloud systems and the edge of the Great Red Spot. Juno entered polar orbit on July 4, 2016.",
                     credit: "NASA / JPL-Caltech / SwRI / MSSS — PIA22946",
                     windowDays: 30,
+                },
+                {
+                    date: "2017-02-02",
+                    planet: "Jupiter South Pole",
+                    img: "images/juno_jupiter_polar.jpg",
+                    approach: "4,300 km",
+                    caption: "Juno\'s first close look at Jupiter\'s south pole reveals a chaotic cluster of oval storms unlike anything seen before in the solar system. Each storm is the size of Earth.",
+                    credit: "NASA / JPL-Caltech / SwRI / MSSS — PIA21380",
+                    windowDays: 20,
                 },
             ],
             "MESSENGER": [
@@ -1540,7 +1675,7 @@
                     planet: "Mercury",
                     img: "images/messenger_mercury.jpg",
                     approach: "Orbit insertion",
-                    caption: "MESSENGER's mosaic of Mercury's Caloris Basin — one of the largest impact craters in the solar system at 1,550 km across. MESSENGER was the first spacecraft to orbit Mercury.",
+                    caption: "MESSENGER\'s mosaic of Mercury\'s Caloris Basin — one of the largest impact craters in the solar system at 1,550 km across. MESSENGER was the first spacecraft to orbit Mercury.",
                     credit: "NASA / JHUAPL / CIW — PIA19213",
                     windowDays: 30,
                 },
@@ -1551,9 +1686,18 @@
                     planet: "Comet 67P",
                     img: "images/rosetta_67p.jpg",
                     approach: "Rendezvous",
-                    caption: "The rugged, double-lobed nucleus of Comet 67P/Churyumov–Gerasimenko captured by Rosetta's OSIRIS camera. Rosetta was the first mission to orbit and land on a comet.",
+                    caption: "The rugged, double-lobed nucleus of Comet 67P/Churyumov–Gerasimenko captured by Rosetta\'s OSIRIS camera. Rosetta was the first mission to orbit and land on a comet.",
                     credit: "ESA / Rosetta / MPS — PIA18596",
                     windowDays: 30,
+                },
+                {
+                    date: "2014-11-12",
+                    planet: "67P Surface — Philae",
+                    img: "images/rosetta_philae.jpg",
+                    approach: "Surface",
+                    caption: "The comet\'s surface as seen by the Philae lander descending toward touchdown on November 12, 2014 — humanity\'s first soft landing on a comet.",
+                    credit: "ESA / Rosetta / Philae / ROLIS / DLR — PIA18878",
+                    windowDays: 15,
                 },
             ],
             "Dawn": [
@@ -1562,7 +1706,7 @@
                     planet: "Vesta",
                     img: "images/dawn_vesta.jpg",
                     approach: "Orbit insertion",
-                    caption: "Dawn's enhanced view of Vesta's south polar region, dominated by the massive Rheasilvia impact basin. Dawn was the first spacecraft to orbit two extraterrestrial bodies.",
+                    caption: "Dawn\'s enhanced view of Vesta\'s south polar region, dominated by the massive Rheasilvia impact basin. Dawn was the first spacecraft to orbit two extraterrestrial bodies.",
                     credit: "NASA / JPL-Caltech / UCLA / MPS / DLR / IDA — PIA14315",
                     windowDays: 30,
                 },
@@ -1571,8 +1715,28 @@
                     planet: "Ceres",
                     img: "images/dawn_ceres.jpg",
                     approach: "Orbit insertion",
-                    caption: "Dawn's view of Occator Crater on Ceres, famous for its bright salt deposits — the brightest features on any world in the outer solar system. Ceres is the largest object in the asteroid belt.",
+                    caption: "Dawn\'s view of Occator Crater on Ceres, famous for its bright salt deposits — the brightest features on any world in the outer solar system.",
                     credit: "NASA / JPL-Caltech / UCLA / MPS / DLR / IDA — PIA20350",
+                    windowDays: 30,
+                },
+                {
+                    date: "2016-06-14",
+                    planet: "Ceres — Ahuna Mons",
+                    img: "images/dawn_ahuna_mons.jpg",
+                    approach: "385 km",
+                    caption: "Ahuna Mons — a 4 km tall cryovolcano on Ceres. Bright streaks on its slopes are thought to be salt deposited by oozing brines. Ahuna Mons is the most recent cryovolcano discovered in the solar system.",
+                    credit: "NASA / JPL-Caltech / UCLA / MPS / DLR / IDA — PIA20349",
+                    windowDays: 20,
+                },
+            ],
+            "OSIRIS-REx": [
+                {
+                    date: "2018-12-03",
+                    planet: "Bennu",
+                    img: "images/osirisrex_bennu.jpg",
+                    approach: "Orbit insertion",
+                    caption: "A detailed mosaic of asteroid Bennu\'s northern hemisphere captured by OSIRIS-REx after arrival in December 2018. The boulder-strewn surface surprised scientists expecting smooth terrain.",
+                    credit: "NASA / Goddard / University of Arizona",
                     windowDays: 30,
                 },
             ],
@@ -1590,6 +1754,13 @@
         const flybyDist    = document.getElementById('flyby-dist');
         const flybyCaption = document.getElementById('flyby-caption');
         let flybyVisible = false;
+        let flybyManuallyClosed = false;
+
+        document.getElementById('flyby-close').addEventListener('click', () => {
+            flybyPanel.style.display = 'none';
+            flybyVisible = false;
+            flybyManuallyClosed = true;
+        });
 
         let flybyPauseUntil = 0; // performance.now() timestamp until which simulation is paused
 
@@ -1600,12 +1771,13 @@
                 if (Math.abs(simDay - p.day) <= p.windowDays) { found = p; break; }
             }
             if (found) {
+                if (flybyManuallyClosed) return; // user dismissed, don't reopen
                 const imgPath = found.img;
                 const isNew = !flybyVisible || flybyImg.getAttribute('data-src') !== imgPath;
                 if (isNew) {
                     flybyImg.src = imgPath;
                     flybyImg.setAttribute('data-src', imgPath);
-                    flybyTitle.textContent = found.planet + ' flyby';
+                    setFlybyTitle(flybyTitle, found.planet + ' flyby', found.planet);
                     flybyDate.textContent = found.date;
                     flybyDist.textContent = found.approach;
                     flybyCaption.textContent = found.caption + ' ' + found.credit;
@@ -1615,6 +1787,8 @@
                     if (playing) flybyPauseUntil = performance.now() + 5000;
                 }
             } else {
+                // reset manual-close flag when slider leaves the flyby window
+                flybyManuallyClosed = false;
                 if (flybyVisible) {
                     flybyPanel.style.display = 'none';
                     flybyVisible = false;
@@ -1826,68 +2000,37 @@
             return auPtToScene(hx, hy, hz);
         }
 
-        // ── Cockpit (first-person) view ───────────────────────────────────────
-        const cockpitBtn  = document.getElementById('cockpit-btn');
-        const cockpitHint = document.getElementById('cockpit-hint');
-
-        const cockpit = {
-            active: false,
-            yaw:    0,   // radians, horizontal look
-            pitch:  0,   // radians, vertical look
-            dragActive: false,
-            lastX: 0,
-            lastY: 0,
-        };
-
-        function enterCockpit() {
-            cockpit.active = true;
-            cockpit.yaw    = 0;
-            cockpit.pitch  = 0;
-            controls.enabled = false;
-            cockpitBtn.classList.add('active');
-            cockpitBtn.textContent = '✕ Exit Cockpit';
-            cockpitHint.style.display = 'block';
-        }
-
-        function exitCockpit() {
-            cockpit.active = false;
-            controls.enabled = true;
-            cockpitBtn.classList.remove('active');
-            cockpitBtn.textContent = '🚀 Cockpit View';
-            cockpitHint.style.display = 'none';
-        }
-
-        cockpitBtn.addEventListener('click', () => {
-            if (cockpit.active) exitCockpit(); else enterCockpit();
-        });
-
-        renderer.domElement.addEventListener('mousedown', (e) => {
-            if (!cockpit.active) return;
-            cockpit.dragActive = true;
-            cockpit.lastX = e.clientX;
-            cockpit.lastY = e.clientY;
-        });
-        window.addEventListener('mousemove', (e) => {
-            if (!cockpit.active || !cockpit.dragActive) return;
-            const sens = 0.003;
-            cockpit.yaw   -= (e.clientX - cockpit.lastX) * sens;
-            cockpit.pitch -= (e.clientY - cockpit.lastY) * sens;
-            cockpit.pitch  = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, cockpit.pitch));
-            cockpit.lastX  = e.clientX;
-            cockpit.lastY  = e.clientY;
-        });
-        window.addEventListener('mouseup', () => { cockpit.dragActive = false; });
-
         // Spacecraft selection — clicking a name shows it and jumps to its launch
         let selectedSC = null;
 
+        const photoMarkersEl = document.getElementById('photo-markers');
+
+        function renderPhotoMarkers(scName, minDay, maxDay) {
+            photoMarkersEl.innerHTML = '';
+            if (!scName) return;
+            const photos = SC_FLYBY_PHOTOS[scName] || [];
+            const range  = maxDay - minDay;
+            for (const p of photos) {
+                const pct = (p.day - minDay) / range;
+                if (pct < 0 || pct > 1) continue;
+                const icon = document.createElement('div');
+                icon.className  = 'pm-icon';
+                icon.style.left = (pct * 100) + '%';
+                icon.innerHTML  = `<div class="pm-icon-img">📷</div><div class="pm-icon-tick"></div><div class="pm-icon-label">${p.planet}</div>`;
+                icon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    simDay = p.day;
+                    syncUI();
+                    flybyVisible = false;
+                    flybyManuallyClosed = false; // allow panel to open when jumping via icon
+                    updateFlybyPanel(simDay, scName);
+                });
+                photoMarkersEl.appendChild(icon);
+            }
+        }
+
         function selectSpacecraft(name) {
             selectedSC = (selectedSC === name) ? null : name;
-
-            // Exit cockpit when deselecting
-            if (!selectedSC && cockpit.active) exitCockpit();
-            cockpitBtn.style.display = selectedSC ? 'block' : 'none';
-            if (!selectedSC && cockpit.active) exitCockpit();
 
             // Hide flyby panel immediately on deselect
             if (!selectedSC) { flybyPanel.style.display = 'none'; flybyVisible = false; }
@@ -1915,13 +2058,16 @@
             }
 
             // Slider range + jump to launch
+            flybyManuallyClosed = false; // reset on spacecraft change
             if (sel) {
                 slider.min = Math.floor(sel.launchDay);
                 slider.max = Math.ceil(sel.endDay);
                 simDay = sel.launchDay;
+                renderPhotoMarkers(selectedSC, sel.launchDay, sel.endDay);
             } else {
                 slider.min = MIN_DAY;
                 slider.max = MAX_DAY;
+                renderPhotoMarkers(null, 0, 1);
             }
             syncUI();
         }
@@ -2054,13 +2200,42 @@
             // Force flyby panel open immediately
             flybyImg.src = ph.img;
             flybyImg.setAttribute('data-src', ph.img);
-            flybyTitle.textContent   = `${name} — ${ph.planet}`;
+            setFlybyTitle(flybyTitle, `${name} — ${ph.planet}`, ph.planet);
             flybyDate.textContent    = ph.date;
             flybyDist.textContent    = ph.approach;
             flybyCaption.textContent = (ph.caption || '') + (ph.credit ? ' ' + ph.credit : '');
             flybyPanel.style.display = 'block';
             flybyVisible = true;
         });
+
+        // ── Focus camera on a planet by name ─────────────────────────────────────
+        const planetFlyState = { active: false, startTime: 0, duration: 1400,
+            fromPos: new THREE.Vector3(), toPos: new THREE.Vector3(),
+            fromTarget: new THREE.Vector3(), toTarget: new THREE.Vector3() };
+
+        function focusPlanet(planetName) {
+            const planet = planets.find(p => p.name.toLowerCase() === planetName.toLowerCase());
+            if (!planet) return;
+            const worldPos = planet.mesh.position.clone();
+            const offset   = planet.size * 6;
+            planetFlyState.fromPos.copy(camera.position);
+            planetFlyState.fromTarget.copy(controls.target);
+            planetFlyState.toTarget.copy(worldPos);
+            planetFlyState.toPos.copy(worldPos).add(new THREE.Vector3(offset, offset * 0.5, offset));
+            planetFlyState.startTime = performance.now();
+            planetFlyState.active = true;
+            controls.enabled = false;
+        }
+
+        function setFlybyTitle(titleEl, label, planetName) {
+            titleEl.innerHTML = '';
+            const span = document.createElement('span');
+            span.className = 'fp-planet-link';
+            span.textContent = label;
+            span.title = 'Zaměřit kameru na ' + planetName;
+            span.addEventListener('click', () => focusPlanet(planetName));
+            titleEl.appendChild(span);
+        }
 
         // Animation
         let time = 0;
@@ -2148,35 +2323,59 @@
                 }
             }
 
+            if (planetFlyState.active) {
+                const elapsed = performance.now() - planetFlyState.startTime;
+                const t = Math.min(elapsed / planetFlyState.duration, 1.0);
+                const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+                camera.position.lerpVectors(planetFlyState.fromPos, planetFlyState.toPos, ease);
+                controls.target.lerpVectors(planetFlyState.fromTarget, planetFlyState.toTarget, ease);
+                if (t >= 1.0) {
+                    planetFlyState.active = false;
+                    controls.enabled = true;
+                }
+            }
+
             // Project solar system indicator to screen
             if (solarIndicator.visible) {
                 const W = window.innerWidth, H = window.innerHeight;
-                const ndc = new THREE.Vector3(0, 0, 0).project(camera);
-                const behind = ndc.z >= 1;
-                let dotX = (ndc.x * 0.5 + 0.5) * W;
-                let dotY = (-ndc.y * 0.5 + 0.5) * H;
+                const margin = 30;
+                const cx = W / 2, cy = H / 2;
 
-                if (behind) {
-                    // Flip coords when behind and clamp to edge
-                    dotX = (-ndc.x * 0.5 + 0.5) * W;
-                    dotY = (ndc.y * 0.5 + 0.5) * H;
+                // Transform solar system origin into camera (view) space
+                // Camera looks down -Z, so viewZ < 0 means in front, > 0 means behind
+                const viewPos = new THREE.Vector3(0, 0, 0)
+                    .applyMatrix4(camera.matrixWorldInverse);
+                const inFront = viewPos.z < 0;
+
+                let dotX, dotY;
+                if (inFront) {
+                    // Normal projection — project to NDC and convert to screen
+                    const ndc = new THREE.Vector3(0, 0, 0).project(camera);
+                    dotX = (ndc.x * 0.5 + 0.5) * W;
+                    dotY = (-ndc.y * 0.5 + 0.5) * H;
+                } else {
+                    // Behind camera: use view-space x,y to get correct screen direction
+                    // Negate because we're looking the other way
+                    const dx = -viewPos.x;
+                    const dy =  viewPos.y;
+                    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                    // Scale so the point lands outside the viewport, then clamp
+                    dotX = cx + (dx / len) * W;
+                    dotY = cy - (dy / len) * H;
                 }
 
-                const margin = 28;
+                // Clamp to screen edge
                 const clampedX = Math.max(margin, Math.min(W - margin, dotX));
                 const clampedY = Math.max(margin, Math.min(H - margin, dotY));
-                const isOnScreen = !behind && dotX >= 0 && dotX <= W && dotY >= 0 && dotY <= H;
 
-                // Dot position (actual solar system screen pos or edge)
                 solarDotEl.style.left = clampedX + 'px';
                 solarDotEl.style.top  = clampedY + 'px';
 
-                // Label 28px above dot
+                // Label above the dot
                 const tagOffsetY = 28;
                 solarTagEl.style.left = clampedX + 'px';
                 solarTagEl.style.top  = (clampedY - tagOffsetY - 18) + 'px';
 
-                // Connector line between label and dot
                 solarLineEl.style.left   = clampedX + 'px';
                 solarLineEl.style.top    = (clampedY - tagOffsetY) + 'px';
                 solarLineEl.style.height = tagOffsetY + 'px';
@@ -2192,32 +2391,6 @@
                 solarSystemGroup.scale.setScalar(ns);
             }
 
-            // Cockpit (first-person) camera
-            if (cockpit.active && selectedSC) {
-                const sc = scObjects.find(s => s.name === selectedSC);
-                if (sc) {
-                    const pos = interpSC(sc.points, simDay);
-                    const posNext = interpSC(sc.points, simDay + 0.5) || interpSC(sc.points, simDay - 0.5);
-                    if (pos && posNext) {
-                        // Flight direction vector
-                        const forward = posNext.clone().sub(pos).normalize();
-
-                        // Build rotation from forward direction + user look offsets
-                        const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-                        // Base orientation: align -Z to forward direction
-                        const baseQ = new THREE.Quaternion().setFromUnitVectors(
-                            new THREE.Vector3(0, 0, -1), forward
-                        );
-                        // Apply user look (yaw around Y, pitch around X)
-                        const lookQ = new THREE.Quaternion();
-                        euler.set(cockpit.pitch, cockpit.yaw, 0, 'YXZ');
-                        lookQ.setFromEuler(euler);
-
-                        camera.position.copy(pos);
-                        camera.quaternion.copy(baseQ).multiply(lookQ);
-                    }
-                }
-            }
 
             controls.update();
             composer.render();
