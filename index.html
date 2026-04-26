@@ -914,7 +914,7 @@
         function createGalaxyPoints(type, seed) {
             const rng = mulberry32(seed);
             const R = 52; // galaxy radius in scene units
-            const count = (type === 'keboola') ? 16000 : (type === 'elliptical') ? 7500 : (type === 'irregular') ? 5500 : 11000;
+            const count = (type === 'keboola') ? 22000 : (type === 'elliptical') ? 7500 : (type === 'irregular') ? 5500 : 11000;
             const pos = new Float32Array(count * 3);
             const col = new Float32Array(count * 3);
 
@@ -1033,28 +1033,43 @@
                     }
                 }
 
-                // ── Legs (two streams curving inward downward) ────────────────
-                const nLeg = Math.floor(count * 0.12);
-                const legBase = armBase + 2 * nArm;
-                for (let l = 0; l < 2; l++) {
-                    const sg = l === 0 ? -1 : 1;
-                    const lBase = legBase + l * nLeg;
-                    for (let i = 0; i < nLeg; i++) {
-                        const t = Math.pow(rng(), 0.75);
-                        const lx = sg * (22 - t * 12);   // ±22 → ±10
-                        const lz = -32 - t * 20;          // −32 → −52
-                        const ii = lBase + i;
-                        pos[ii*3]   = lx + (rng()-0.5)*R*0.045;
-                        pos[ii*3+1] = (rng()-0.5)*R*0.03;
-                        pos[ii*3+2] = lz + (rng()-0.5)*R*0.04;
+                // ── Tentacles — 5 bezier tentacles radiating downward ────────
+                // Each defined as cubic bezier: p0 (root) → p1 → p2 → p3 (tip)
+                const tentacleDefs = [
+                    // far-left: sweeps out wide then curls tip back right
+                    { p0x: -22, p0z: -32, p1x: -48, p1z: -38, p2x: -42, p2z: -56, p3x: -25, p3z: -66 },
+                    // center-left: gentle inward curl
+                    { p0x:  -8, p0z: -20, p1x: -30, p1z: -42, p2x: -22, p2z: -60, p3x:  -8, p3z: -70 },
+                    // center: goes nearly straight down with slight S-curve
+                    { p0x:   2, p0z: -25, p1x: -14, p1z: -45, p2x:  12, p2z: -58, p3x:   4, p3z: -72 },
+                    // center-right: mirror of center-left
+                    { p0x:   8, p0z: -20, p1x:  30, p1z: -42, p2x:  22, p2z: -60, p3x:   8, p3z: -70 },
+                    // far-right: mirror of far-left
+                    { p0x:  22, p0z: -32, p1x:  48, p1z: -38, p2x:  42, p2z: -56, p3x:  25, p3z: -66 },
+                ];
+                const nTent = Math.floor(count * 0.065);
+                const tentBase = armBase + 2 * nArm;
+                for (let t = 0; t < tentacleDefs.length; t++) {
+                    const td = tentacleDefs[t];
+                    const tBase = tentBase + t * nTent;
+                    for (let i = 0; i < nTent; i++) {
+                        const s = rng();
+                        const u = 1 - s;
+                        const bx = u*u*u*td.p0x + 3*u*u*s*td.p1x + 3*u*s*s*td.p2x + s*s*s*td.p3x;
+                        const bz = u*u*u*td.p0z + 3*u*u*s*td.p1z + 3*u*s*s*td.p2z + s*s*s*td.p3z;
+                        const sc = R * 0.038 * (1 - s * 0.5); // tapers toward tip
+                        const ii = tBase + i;
+                        pos[ii*3]   = bx + (rng()-0.5)*sc*2;
+                        pos[ii*3+1] = (rng()-0.5)*R*0.025;
+                        pos[ii*3+2] = bz + (rng()-0.5)*sc;
                         const br = rng();
-                        const clr = br > 0.68 ? kLight : kBlue;
+                        const clr = br > 0.72 ? kLight : kBlue;
                         col[ii*3]=clr[0]; col[ii*3+1]=clr[1]; col[ii*3+2]=clr[2];
                     }
                 }
 
                 // ── Pipeline sparks ───────────────────────────────────────────
-                const spBase = legBase + 2 * nLeg;
+                const spBase = tentBase + tentacleDefs.length * nTent;
                 for (let i = spBase; i < count; i++) {
                     const r2 = R * 0.08 + rng() * R * 0.52;
                     const th = rng() * Math.PI * 2;

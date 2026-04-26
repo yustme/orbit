@@ -1,0 +1,10 @@
+.git
+node_modules
+tests
+test-results
+docs
+scripts
+package*.json
+playwright.config.js
+*.md
+.gitignore

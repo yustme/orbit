@@ -2,10 +2,15 @@
   "name": "orbit-solar-system",
   "version": "1.0.0",
   "description": "3D Solar System visualization",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.22.1"
+  },
   "devDependencies": {
     "@playwright/test": "^1.44.0"
   },
   "scripts": {
+    "start": "node server.js",
     "test": "playwright test",
     "test:headed": "playwright test --headed"
   }
