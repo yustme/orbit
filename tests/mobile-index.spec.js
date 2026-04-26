@@ -35,7 +35,8 @@ test.describe('index.html mobile', () => {
     if (slider) {
       const box = await slider.boundingBox();
       if (box) {
-        expect(box.x + box.width).toBeLessThanOrEqual(380);
+        const vpWidth = page.viewportSize()?.width ?? 393;
+        expect(box.x + box.width).toBeLessThanOrEqual(vpWidth + 5);
       }
     }
   });

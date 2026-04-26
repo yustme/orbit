@@ -424,14 +424,56 @@
             #legend.legend-mobile-open {
                 display: flex;
                 z-index: 1050;
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+
+            /* Time controls — fix to bottom, wrap into 2 rows */
+            #time-controls {
+                position: fixed;
+                left: 8px;
+                right: 8px;
+                bottom: 10px;
+                transform: none;
+                flex-wrap: wrap;
+                gap: 6px 10px;
+                padding: 8px 12px;
+                width: auto;
+                white-space: normal;
+            }
+            #slider-wrap {
+                order: 10;
+                width: 100%;
+                min-width: 0;
             }
             #time-slider {
-                width: calc(100vw - 120px);
+                width: 100%;
+                min-width: 0;
+                max-width: calc(100vw - 64px);
+            }
+            #photo-markers {
+                width: 100%;
             }
             #play-btn {
                 min-width: 44px;
                 min-height: 44px;
             }
+            #date-display {
+                min-width: 0;
+                font-size: 0.8em;
+                flex: 1;
+                text-align: left;
+            }
+            #speed-select {
+                font-size: 0.78em;
+                padding: 2px 6px;
+            }
+            #info {
+                padding-right: 100px;
+                text-align: left;
+                padding-left: 12px;
+            }
+
             #flyby-panel {
                 left: 0;
                 right: 0;
@@ -442,7 +484,7 @@
             #galaxy-info {
                 left: 0;
                 right: 0;
-                bottom: 72px;
+                bottom: 110px;
                 max-width: none;
                 max-height: 35vh;
                 overflow-y: auto;
