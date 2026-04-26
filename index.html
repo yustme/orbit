@@ -19,6 +19,7 @@
         }
         #info h1 { font-size: 1.1em; margin: 0 0 4px; letter-spacing: 2px; text-transform: uppercase; }
         #info p { font-size: 0.75em; margin: 0; opacity: 0.5; }
+        .mobile-hint { display: none; }
         #gallery-link {
             position: absolute;
             top: 12px;
@@ -410,70 +411,101 @@
             min-height: 44px;
         }
         @media (max-width: 768px) {
+            /* --- TOP BAR --- */
+            #info {
+                text-align: left;
+                padding: 10px 130px 8px 12px;
+                background: linear-gradient(rgba(0,0,0,0.55) 60%, transparent);
+            }
+            #info h1 { font-size: 0.95em; }
+            .desktop-hint { display: none; }
+            .mobile-hint { display: block; }
+
+            /* Gallery link: to the left of hamburger */
+            #gallery-link {
+                top: 10px;
+                right: 62px;
+                font-size: 0.65em;
+                letter-spacing: 1px;
+                padding: 5px 10px;
+            }
+
+            /* Hamburger button */
             #hamburger-btn {
                 display: flex;
                 align-items: center;
                 justify-content: center;
             }
-            #gallery-link {
-                right: 64px;
-            }
+
+            /* --- LEGEND PANEL --- */
             #legend {
                 display: none;
+                position: fixed;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 220px;
+                max-height: 100vh;
+                overflow-y: auto;
+                background: rgba(0,0,0,0.93);
+                border-left: 1px solid rgba(255,255,255,0.1);
+                padding: 64px 16px 120px;
+                border-radius: 0;
+                z-index: 1050;
             }
             #legend.legend-mobile-open {
                 display: flex;
-                z-index: 1050;
-                max-height: 70vh;
-                overflow-y: auto;
+                flex-direction: column;
             }
 
-            /* Time controls — fix to bottom, wrap into 2 rows */
+            /* --- TIME CONTROLS: full-width panel at bottom --- */
             #time-controls {
                 position: fixed;
-                left: 8px;
-                right: 8px;
-                bottom: 10px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100vw;
+                box-sizing: border-box;
                 transform: none;
                 flex-wrap: wrap;
                 gap: 6px 10px;
-                padding: 8px 12px;
-                width: auto;
+                padding: 10px 14px;
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+                border-bottom: none;
                 white-space: normal;
             }
+            /* Slider on its own full-width row */
             #slider-wrap {
                 order: 10;
-                width: 100%;
+                flex: 0 0 100%;
                 min-width: 0;
+                box-sizing: border-box;
             }
             #time-slider {
                 width: 100%;
                 min-width: 0;
-                max-width: calc(100vw - 64px);
+                box-sizing: border-box;
             }
-            #photo-markers {
-                width: 100%;
-            }
+            #photo-markers { width: 100%; }
             #play-btn {
                 min-width: 44px;
                 min-height: 44px;
             }
             #date-display {
                 min-width: 0;
-                font-size: 0.8em;
                 flex: 1;
                 text-align: left;
+                font-size: 0.82em;
             }
             #speed-select {
                 font-size: 0.78em;
                 padding: 2px 6px;
             }
-            #info {
-                padding-right: 100px;
-                text-align: left;
-                padding-left: 12px;
-            }
 
+            /* --- OTHER PANELS --- */
             #flyby-panel {
                 left: 0;
                 right: 0;
@@ -490,17 +522,17 @@
                 overflow-y: auto;
             }
         }
+
         @media (pointer: coarse) {
-            #tooltip {
-                display: none !important;
-            }
+            #tooltip { display: none !important; }
         }
     </style>
 </head>
 <body>
     <div id="info">
         <h1>3D Solar System</h1>
-        <p>LMB: Rotate &nbsp;|&nbsp; Scroll: Zoom &nbsp;|&nbsp; RMB: Pan</p>
+        <p class="desktop-hint">LMB: Rotate &nbsp;|&nbsp; Scroll: Zoom &nbsp;|&nbsp; RMB: Pan</p>
+        <p class="mobile-hint">1 prst: Rotace &nbsp;|&nbsp; 2 prsty: Zoom</p>
     </div>
 
     <a id="gallery-link" href="gallery.html">Photos &#8599;</a>
