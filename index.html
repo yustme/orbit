@@ -453,6 +453,20 @@
                 border-radius: 0;
                 z-index: 1050;
             }
+            /* Bigger tap targets for legend items on mobile */
+            #legend .legend-item {
+                padding: 8px 4px;
+                font-size: 1em;
+                gap: 12px;
+            }
+            #legend .legend-dot {
+                width: 12px;
+                height: 12px;
+            }
+            #legend .legend-section {
+                margin-top: 16px;
+                margin-bottom: 4px;
+            }
             #legend.legend-mobile-open {
                 display: flex;
                 flex-direction: column;
@@ -653,11 +667,22 @@
         controls.maxDistance = 400;
         controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
-        // On mobile, shift camera target down so scene appears higher (above bottom controls)
         const isMobileDevice = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 900;
-        if (isMobileDevice) {
-            controls.target.set(0, -18, 0);
+
+        // On mobile, shift rendered output up by ~55px so scene isn't hidden behind bottom controls
+        function updateMobileViewOffset() {
+            if (isMobileDevice) {
+                const shift = 55;
+                camera.setViewOffset(
+                    window.innerWidth, window.innerHeight + shift,
+                    0, shift,
+                    window.innerWidth, window.innerHeight
+                );
+            } else {
+                camera.clearViewOffset();
+            }
         }
+        updateMobileViewOffset();
 
         // Three.js r155+ uses physical light units by default - legacy mode needed
         renderer.useLegacyLights = true;
@@ -1260,7 +1285,6 @@
             const dir = worldPos.clone().normalize();
             flyState.camTarget.copy(dir).multiplyScalar(3300);
             flyState.ctrlTarget.copy(worldPos);
-            if (isMobileDevice) flyState.ctrlTarget.y -= 600;
             flyState.active = true;
             flyState.startTime = performance.now();
             flyState.duration = 2800;
@@ -2707,6 +2731,7 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             composer.setSize(window.innerWidth, window.innerHeight);
+            updateMobileViewOffset();
         });
 
         animate();
