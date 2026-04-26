@@ -2718,6 +2718,11 @@
             hamburgerBtn.addEventListener('click', () => {
                 legendEl.classList.toggle('legend-mobile-open');
             });
+            legendEl.addEventListener('click', (e) => {
+                if (e.target.closest('.legend-item')) {
+                    legendEl.classList.remove('legend-mobile-open');
+                }
+            });
         }
 
     </script>
