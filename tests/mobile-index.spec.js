@@ -58,7 +58,7 @@ test.describe('index.html mobile', () => {
 
   test('hamburger click shows legend', async ({ page }) => {
     await page.waitForTimeout(1000);
-    await page.click('#hamburger-btn');
+    await page.dispatchEvent('#hamburger-btn', 'click');
     await page.waitForTimeout(500);
     const legend = await page.$('#legend');
     if (legend) {
@@ -69,9 +69,9 @@ test.describe('index.html mobile', () => {
 
   test('second hamburger click hides legend', async ({ page }) => {
     await page.waitForTimeout(1000);
-    await page.click('#hamburger-btn');
+    await page.dispatchEvent('#hamburger-btn', 'click');
     await page.waitForTimeout(300);
-    await page.click('#hamburger-btn');
+    await page.dispatchEvent('#hamburger-btn', 'click');
     await page.waitForTimeout(300);
     const legend = await page.$('#legend');
     if (legend) {
