@@ -518,8 +518,11 @@
                 right: 0;
                 bottom: 110px;
                 max-width: none;
-                max-height: 35vh;
-                overflow-y: auto;
+                padding: 10px 14px;
+                font-size: 0.75em;
+            }
+            #galaxy-info .ginfo-fact {
+                display: none;
             }
         }
 
@@ -649,6 +652,12 @@
         controls.minDistance = 4;
         controls.maxDistance = 400;
         controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+
+        // On mobile, shift camera target down so scene appears higher (above bottom controls)
+        const isMobileDevice = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 900;
+        if (isMobileDevice) {
+            controls.target.set(0, -18, 0);
+        }
 
         // Three.js r155+ uses physical light units by default - legacy mode needed
         renderer.useLegacyLights = true;
@@ -1251,6 +1260,7 @@
             const dir = worldPos.clone().normalize();
             flyState.camTarget.copy(dir).multiplyScalar(3300);
             flyState.ctrlTarget.copy(worldPos);
+            if (isMobileDevice) flyState.ctrlTarget.y -= 600;
             flyState.active = true;
             flyState.startTime = performance.now();
             flyState.duration = 2800;
