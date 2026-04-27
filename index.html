@@ -20,12 +20,18 @@
         #info h1 { font-size: 1.1em; margin: 0 0 4px; letter-spacing: 2px; text-transform: uppercase; }
         #info p { font-size: 0.75em; margin: 0; opacity: 0.5; }
         .mobile-hint { display: none; }
-        #gallery-link {
+        #top-right-bar {
             position: absolute;
             top: 12px;
             right: 16px;
-            pointer-events: all;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
             z-index: 10;
+            pointer-events: all;
+        }
+        #gallery-link {
             color: #aaddff;
             text-decoration: none;
             font-family: sans-serif;
@@ -33,9 +39,12 @@
             letter-spacing: 2px;
             border: 1px solid rgba(100,180,255,0.3);
             border-radius: 4px;
-            padding: 6px 14px;
+            padding: 0 14px;
+            height: 32px;
+            line-height: 32px;
             background: rgba(0,0,0,0.55);
             transition: background 0.15s, border-color 0.15s;
+            white-space: nowrap;
         }
         #gallery-link:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
         #legend {
@@ -96,6 +105,48 @@
             font-weight: bold;
         }
         .legend-sc.sc-dimmed { opacity: 0.2; }
+        .scale-toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 3px 0;
+            cursor: pointer;
+            user-select: none;
+            opacity: 0.75;
+            transition: opacity 0.15s;
+        }
+        .scale-toggle-row:hover { opacity: 1; color: #aaddff; }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 30px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+        .toggle-knob {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(255,255,255,0.15);
+            border-radius: 16px;
+            transition: background 0.2s;
+        }
+        .toggle-knob:before {
+            content: "";
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            left: 3px;
+            bottom: 3px;
+            background: rgba(255,255,255,0.55);
+            border-radius: 50%;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .toggle-knob.active { background: rgba(68,136,255,0.55); }
+        .toggle-knob.active:before {
+            transform: translateX(14px);
+            background: #aaddff;
+        }
         .legend-galaxy-icon {
             width: 12px;
             height: 7px;
@@ -266,19 +317,90 @@
             white-space: nowrap;
         }
         #zoom-out-btn:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
-        #reset-btn {
+        #reset-btn, #help-btn {
             background: none;
             border: 1px solid rgba(255,255,255,0.25);
             color: rgba(255,255,255,0.6);
             border-radius: 4px;
-            width: 30px; height: 30px;
+            width: 32px; height: 32px;
             cursor: pointer;
             font-size: 1em;
             padding: 0;
-            flex-shrink: 0;
             line-height: 1;
+            flex-shrink: 0;
+            font-family: sans-serif;
         }
-        #reset-btn:hover { border-color: rgba(255,255,255,0.6); color: #fff; }
+        #reset-btn:hover, #help-btn:hover { border-color: rgba(255,255,255,0.6); color: #fff; }
+        #help-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0,0,0,0.72);
+            align-items: center;
+            justify-content: center;
+        }
+        #help-modal.open { display: flex; }
+        #help-modal-box {
+            background: rgba(10,15,25,0.97);
+            border: 1px solid rgba(100,180,255,0.25);
+            border-radius: 10px;
+            color: #cde;
+            font-family: sans-serif;
+            font-size: 0.82em;
+            padding: 28px 32px 24px;
+            max-width: 480px;
+            width: calc(100% - 40px);
+            position: relative;
+            line-height: 1.6;
+        }
+        #help-modal-box h2 {
+            margin: 0 0 16px;
+            font-size: 1em;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #aaddff;
+            font-weight: 500;
+        }
+        #help-modal-box ul {
+            margin: 0;
+            padding: 0 0 0 18px;
+        }
+        #help-modal-box li {
+            margin-bottom: 9px;
+        }
+        #help-modal-box li:last-child { margin-bottom: 0; }
+        #help-modal-box ul ul {
+            margin-top: 7px;
+            padding-left: 16px;
+        }
+        #help-modal-box ul ul li {
+            margin-bottom: 4px;
+            opacity: 0.75;
+            font-size: 0.93em;
+        }
+        #help-modal-box kbd {
+            display: inline-block;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-size: 0.9em;
+            font-family: monospace;
+            color: #aef;
+        }
+        #help-modal-close {
+            position: absolute;
+            top: 12px; right: 14px;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.4);
+            font-size: 1.2em;
+            cursor: pointer;
+            line-height: 1;
+            padding: 2px 6px;
+        }
+        #help-modal-close:hover { color: #fff; }
         #planet-labels {
             position: absolute;
             top: 0; left: 0;
@@ -509,13 +631,21 @@
             .desktop-hint { display: none; }
             .mobile-hint { display: block; }
 
-            /* Gallery link: to the left of hamburger */
-            #gallery-link {
+            /* Top-right bar: sits to the left of hamburger on mobile */
+            #top-right-bar {
                 top: 10px;
                 right: 62px;
+                gap: 6px;
+            }
+            #gallery-link {
                 font-size: 0.65em;
                 letter-spacing: 1px;
-                padding: 5px 10px;
+                padding: 0 10px;
+                height: 30px;
+                line-height: 30px;
+            }
+            #reset-btn, #help-btn {
+                width: 30px; height: 30px;
             }
 
             /* Hamburger button */
@@ -674,7 +804,35 @@
         <p class="mobile-hint">1 finger: Rotate &nbsp;|&nbsp; 2 fingers: Zoom</p>
     </div>
 
-    <a id="gallery-link" href="gallery.html">Photos &#8599;</a>
+    <div id="top-right-bar">
+        <button id="help-btn" title="How to use">?</button>
+        <button id="reset-btn" title="Reset to default">&#8634;</button>
+        <a id="gallery-link" href="gallery.html">Photos &#8599;</a>
+    </div>
+    <div id="help-modal">
+        <div id="help-modal-box">
+            <button id="help-modal-close">&#x2715;</button>
+            <h2>How to use</h2>
+            <ul>
+                <li><strong>Everything starts in the <kbd>&#9776;</kbd> menu</strong> (top right). Select what you want to explore first — nothing happens without picking something from the menu.
+                    <ul>
+                        <li><strong>Planets</strong> — Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune</li>
+                        <li><strong>Spacecraft</strong> — Voyager 1 &amp; 2, Pioneer 10 &amp; 11, Cassini, New Horizons, Juno, MESSENGER, Rosetta, Galileo, Ulysses, Dawn, BepiColombo, Mars Odyssey, Mars Express, Parker Solar</li>
+                        <li><strong>Galaxies</strong> — Andromeda, Triangulum, LMC, SMC, Bode's, Centaurus A, Sombrero, Whirlpool, M87, Sculptor, Keboola</li>
+                    </ul>
+                </li>
+                <li>Selected spacecraft: the camera follows it and shows its trajectory through time</li>
+                <li>Selected planet: zooms in and reveals its moons</li>
+                <li>Selected galaxy: flies out to it and shows info about it</li>
+                <li><kbd>Scroll</kbd> to zoom in and out — also works while following a spacecraft or moon</li>
+                <li><kbd>Drag</kbd> to rotate the view freely</li>
+                <li>Use the <strong>timeline</strong> at the bottom to travel through time from 1990 to 2050</li>
+                <li>Adjust <strong>speed</strong> to slow down or fast-forward the simulation</li>
+                <li>Click <strong>Photos</strong> to browse real flyby images taken by each spacecraft</li>
+                <li><kbd>&#8634;</kbd> resets everything back to the default state</li>
+            </ul>
+        </div>
+    </div>
     <div id="tooltip"></div>
     <div id="galaxy-info"></div>
     <div id="moon-labels"></div>
@@ -702,7 +860,6 @@
     </div>
 
     <div id="time-controls">
-        <button id="reset-btn" title="Reset to default">&#8634;</button>
         <button id="play-btn">&#9654;</button>
         <div id="slider-wrap">
             <div id="photo-markers"></div>
@@ -710,16 +867,16 @@
         </div>
         <div id="date-display">Apr 22, 2026</div>
         <select id="speed-select">
-            <option value="0.01">0.01 d/frame</option>
-            <option value="0.02" selected>0.02 d/frame</option>
-            <option value="0.1">0.1 d/frame</option>
-            <option value="0.5">0.5 d/frame</option>
-            <option value="1">1 d/frame</option>
-            <option value="5">5 d/frame</option>
-            <option value="10">10 d/frame</option>
-            <option value="30">30 d/frame</option>
-            <option value="100">100 d/frame</option>
-            <option value="365">365 d/frame</option>
+            <option value="0.01">Speed: 0.01 d/frame</option>
+            <option value="0.02" selected>Speed: 0.02 d/frame</option>
+            <option value="0.1">Speed: 0.1 d/frame</option>
+            <option value="0.5">Speed: 0.5 d/frame</option>
+            <option value="1">Speed: 1 d/frame</option>
+            <option value="5">Speed: 5 d/frame</option>
+            <option value="10">Speed: 10 d/frame</option>
+            <option value="30">Speed: 30 d/frame</option>
+            <option value="100">Speed: 100 d/frame</option>
+            <option value="365">Speed: 365 d/frame</option>
         </select>
     </div>
 
@@ -733,7 +890,14 @@
         <div class="legend-item legend-planet" data-planet="Saturn"><div class="legend-dot" style="background:#ddcc88"></div>Saturn</div>
         <div class="legend-item legend-planet" data-planet="Uranus"><div class="legend-dot" style="background:#55ccdd"></div>Uranus</div>
         <div class="legend-item legend-planet" data-planet="Neptune"><div class="legend-dot" style="background:#3366cc"></div>Neptune</div>
-        <div class="legend-section">Galaxies</div>
+        <div class="legend-section" style="margin-top:10px">Scale</div>
+        <div class="scale-toggle-row" id="true-scale-toggle" role="switch" aria-checked="false" tabindex="0">
+            <span class="toggle-switch">
+                <span class="toggle-knob" id="true-scale-knob"></span>
+            </span>
+            True distances
+        </div>
+        <div class="legend-section" style="margin-top:6px">Galaxies</div>
         <div id="galaxy-legend"></div>
         <div class="legend-section" style="margin-top:10px">Spacecraft</div>
         <div id="sc-legend"></div>
@@ -1645,26 +1809,26 @@
         const earthClouds  = textureLoader.load(BASE + 'earth_clouds_2048.jpg');
         const moonMap      = textureLoader.load(BASE + 'moon_1024.jpg');
 
-        // Real J2000 Keplerian elements. distance = visual semi-major axis (AU-compressed scale)
+        // Real J2000 Keplerian elements. distance = visual semi-major axis (AU-compressed scale), realAU = true semi-major axis
         // e = eccentricity, inc = inclination to ecliptic (°), period = sidereal years
         const BASE_SPEED = 0.01; // Earth rad/frame
         const planetsData = [
-            { name: 'Mercury', tex: textures.mercury, size: 0.55, distance: 11,  e: 0.2056, inc: 7.00,  Omega:  48.331, omega:  29.125, period: 0.2408, tilt: 0.03,  roughness: 0.9, metalness: 0.1, orbitColor: 0x887766 },
-            { name: 'Venus',   tex: textures.venus,   size: 1.05, distance: 17,  e: 0.0068, inc: 3.39,  Omega:  76.680, omega:  54.884, period: 0.6152, tilt: 3.10,  roughness: 0.6, metalness: 0,   orbitColor: 0xddaa55 },
-            { name: 'Earth',   isEarth: true,          size: 1.15, distance: 24,  e: 0.0167, inc: 0.00,  Omega:   0.000, omega: 102.937, period: 1.0000, tilt: 0.41,                                  orbitColor: 0x4488ff },
-            { name: 'Mars',    tex: textures.mars,    size: 0.75, distance: 34,  e: 0.0934, inc: 1.85,  Omega:  49.558, omega: 286.502, period: 1.8808, tilt: 0.44,  roughness: 0.9, metalness: 0,   orbitColor: 0xcc5533,
+            { name: 'Mercury', tex: textures.mercury, size: 0.55, distance: 11,  realAU: 0.3871, e: 0.2056, inc: 7.00,  Omega:  48.331, omega:  29.125, period: 0.2408, tilt: 0.03,  roughness: 0.9, metalness: 0.1, orbitColor: 0x887766 },
+            { name: 'Venus',   tex: textures.venus,   size: 1.05, distance: 17,  realAU: 0.7233, e: 0.0068, inc: 3.39,  Omega:  76.680, omega:  54.884, period: 0.6152, tilt: 3.10,  roughness: 0.6, metalness: 0,   orbitColor: 0xddaa55 },
+            { name: 'Earth',   isEarth: true,          size: 1.15, distance: 24,  realAU: 1.0000, e: 0.0167, inc: 0.00,  Omega:   0.000, omega: 102.937, period: 1.0000, tilt: 0.41,                                  orbitColor: 0x4488ff },
+            { name: 'Mars',    tex: textures.mars,    size: 0.75, distance: 34,  realAU: 1.5237, e: 0.0934, inc: 1.85,  Omega:  49.558, omega: 286.502, period: 1.8808, tilt: 0.44,  roughness: 0.9, metalness: 0,   orbitColor: 0xcc5533,
               moons: [
                 { name: 'Phobos', period: 0.3189, dist: 1.05, size: 0.06, color: 0x887766 },
                 { name: 'Deimos', period: 1.2624, dist: 1.65, size: 0.05, color: 0x998877 },
               ]},
-            { name: 'Jupiter', tex: textures.jupiter, size: 3.4,  distance: 53,  e: 0.0489, inc: 1.30,  Omega: 100.464, omega:  14.331, period: 11.862, tilt: 0.05,  roughness: 0.7, metalness: 0,   orbitColor: 0xcc9944,
+            { name: 'Jupiter', tex: textures.jupiter, size: 3.4,  distance: 53,  realAU: 5.2034, e: 0.0489, inc: 1.30,  Omega: 100.464, omega:  14.331, period: 11.862, tilt: 0.05,  roughness: 0.7, metalness: 0,   orbitColor: 0xcc9944,
               moons: [
                 { name: 'Io',       period: 1.769,  dist: 5.5,  size: 0.22, color: 0xddaa22 },
                 { name: 'Europa',   period: 3.551,  dist: 7.2,  size: 0.19, color: 0xddccbb },
                 { name: 'Ganymede', period: 7.155,  dist: 9.5,  size: 0.27, color: 0x998877 },
                 { name: 'Callisto', period: 16.689, dist: 13.0, size: 0.24, color: 0x554433 },
               ]},
-            { name: 'Saturn',  tex: textures.saturn,  size: 2.9,  distance: 72,  e: 0.0565, inc: 2.49,  Omega: 113.665, omega:  93.058, period: 29.457, tilt: 0.47,  roughness: 0.7, metalness: 0,   hasRing: true, orbitColor: 0xddcc88,
+            { name: 'Saturn',  tex: textures.saturn,  size: 2.9,  distance: 72,  realAU: 9.5371, e: 0.0565, inc: 2.49,  Omega: 113.665, omega:  93.058, period: 29.457, tilt: 0.47,  roughness: 0.7, metalness: 0,   hasRing: true, orbitColor: 0xddcc88,
               moons: [
                 { name: 'Mimas',     period:  0.942, dist:  4.5, size: 0.08, color: 0xccccbb },
                 { name: 'Enceladus', period:  1.370, dist:  5.5, size: 0.10, color: 0xeeeedd },
@@ -1673,7 +1837,7 @@
                 { name: 'Rhea',      period:  4.518, dist:  9.5, size: 0.17, color: 0x999999 },
                 { name: 'Titan',     period: 15.945, dist: 14.0, size: 0.25, color: 0xddaa55 },
               ]},
-            { name: 'Uranus',  tex: textures.uranus,  size: 1.9,  distance: 88,  e: 0.0463, inc: 0.77,  Omega:  74.006, omega: 173.005, period: 84.011, tilt: 1.71,  roughness: 0.3, metalness: 0,   icy: true, orbitColor: 0x55ccdd,
+            { name: 'Uranus',  tex: textures.uranus,  size: 1.9,  distance: 88,  realAU: 19.191, e: 0.0463, inc: 0.77,  Omega:  74.006, omega: 173.005, period: 84.011, tilt: 1.71,  roughness: 0.3, metalness: 0,   icy: true, orbitColor: 0x55ccdd,
               moons: [
                 { name: 'Miranda', period:  1.413, dist: 3.0, size: 0.07, color: 0x888888 },
                 { name: 'Ariel',   period:  2.520, dist: 4.0, size: 0.11, color: 0xaaaaaa },
@@ -1681,7 +1845,7 @@
                 { name: 'Titania', period:  8.706, dist: 6.5, size: 0.14, color: 0x999999 },
                 { name: 'Oberon',  period: 13.463, dist: 8.0, size: 0.13, color: 0x777777 },
               ]},
-            { name: 'Neptune', tex: textures.neptune, size: 1.8,  distance: 105, e: 0.0097, inc: 1.77,  Omega: 131.784, omega:  48.123, period: 164.79, tilt: 0.49,  roughness: 0.3, metalness: 0,   icy: true, orbitColor: 0x3366cc,
+            { name: 'Neptune', tex: textures.neptune, size: 1.8,  distance: 105, realAU: 30.069, e: 0.0097, inc: 1.77,  Omega: 131.784, omega:  48.123, period: 164.79, tilt: 0.49,  roughness: 0.3, metalness: 0,   icy: true, orbitColor: 0x3366cc,
               moons: [
                 { name: 'Triton', period: -5.877, dist: 3.5, size: 0.18, color: 0xaabbcc },
               ]}
@@ -1732,7 +1896,8 @@
             const b      = a * Math.sqrt(1 - d.e * d.e);
             const c      = a * d.e;
             const incRad = d.inc * Math.PI / 180;
-            solarSystemGroup.add(orbitLine(a, d.e, d.inc, d.Omega || 0, d.omega || 0, d.orbitColor));
+            const line = orbitLine(a, d.e, d.inc, d.Omega || 0, d.omega || 0, d.orbitColor);
+            solarSystemGroup.add(line);
 
             let mat;
             if (d.isEarth) {
@@ -1812,7 +1977,7 @@
 
             solarSystemGroup.add(mesh);
             return {
-                mesh, name: d.name, size: d.size, a, b, c, e: d.e, incRad,
+                mesh, orbitLine: line, name: d.name, size: d.size, a, b, c, e: d.e, incRad,
                 Omega: d.Omega || 0, omega: d.omega || 0, inc: d.inc || 0,
                 speed: BASE_SPEED / d.period,
                 angle: Math.random() * Math.PI * 2,
@@ -1823,6 +1988,61 @@
             const p = createPlanet(d);
             planets.push(p);
             planetLabelData.push({ mesh: p.mesh, labelEl: createPlanetLabel(d.name), size: d.size });
+        });
+
+        // ── True-scale toggle ─────────────────────────────────────────────────
+        // Neptune anchors the linear scale: 105 vis units / 30.069 AU = 3.491 vis/AU
+        const TRUE_SCALE_FACTOR = 105 / 30.069;
+        let trueScaleMode = false;
+
+        function setScaleMode(useTrue) {
+            trueScaleMode = useTrue;
+            planets.forEach((p, i) => {
+                const d = planetsData[i];
+                const newDist = useTrue ? d.realAU * TRUE_SCALE_FACTOR : d.distance;
+                p.a = newDist;
+                p.b = newDist * Math.sqrt(1 - d.e * d.e);
+                p.c = newDist * d.e;
+
+                solarSystemGroup.remove(p.orbitLine);
+                p.orbitLine.geometry.dispose();
+                p.orbitLine = orbitLine(p.a, d.e, d.inc, p.Omega, p.omega, d.orbitColor);
+                solarSystemGroup.add(p.orbitLine);
+            });
+
+            // Spacecraft trajectories are baked at visual scale — hide them in true scale mode
+            const scLegendEl = document.getElementById('sc-legend');
+            if (useTrue) {
+                for (const sc of scObjects) {
+                    sc.sprite.visible = false;
+                    sc.line.visible = false;
+                    for (const m of sc.milestones) m.sprite.visible = false;
+                    for (const ph of sc.photoIcons) ph.visible = false;
+                    sc.endMarker.visible = false;
+                }
+                scLegendEl.style.opacity = '0.3';
+                scLegendEl.style.pointerEvents = 'none';
+                scLegendEl.title = 'Spacecraft hidden — trajectories use visual scale';
+            } else {
+                scLegendEl.style.opacity = '';
+                scLegendEl.style.pointerEvents = '';
+                scLegendEl.title = '';
+                // Restore milestones/markers for selected spacecraft; animation loop handles sprite/line
+                for (const sc of scObjects) {
+                    const isSel = sc.name === selectedSC;
+                    for (const m of sc.milestones) m.sprite.visible = isSel;
+                    for (const ph of sc.photoIcons) ph.visible = isSel;
+                    sc.endMarker.visible = isSel;
+                }
+            }
+        }
+
+        document.getElementById('true-scale-toggle').addEventListener('click', e => {
+            e.stopPropagation();
+            trueScaleMode = !trueScaleMode;
+            document.getElementById('true-scale-knob').classList.toggle('active', trueScaleMode);
+            document.getElementById('true-scale-toggle').setAttribute('aria-checked', trueScaleMode);
+            setScaleMode(trueScaleMode);
         });
 
         // ── Scale: real AU → visual scene units (matches compressed planet visual distances) ──
@@ -3070,6 +3290,14 @@
             planetFlyState.targetPlanet = null;
             controls.enabled = false;
         });
+
+        // Help modal
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const helpModalClose = document.getElementById('help-modal-close');
+        helpBtn.addEventListener('click', () => helpModal.classList.add('open'));
+        helpModalClose.addEventListener('click', () => helpModal.classList.remove('open'));
+        helpModal.addEventListener('click', (e) => { if (e.target === helpModal) helpModal.classList.remove('open'); });
 
         // Scroll zoom while following a spacecraft or moon
         window.addEventListener('wheel', (e) => {
