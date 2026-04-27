@@ -247,6 +247,33 @@
             z-index: 20;
         }
         #back-btn:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
+        #zoom-out-btn {
+            position: absolute;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            background: rgba(0,0,0,0.72);
+            color: #aaddff;
+            border: 1px solid rgba(100,180,255,0.3);
+            border-radius: 4px;
+            padding: 7px 18px;
+            font-family: sans-serif;
+            font-size: 0.75em;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            z-index: 20;
+            white-space: nowrap;
+        }
+        #zoom-out-btn:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
+        #planet-labels {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            overflow: hidden;
+        }
         #solar-marker {
             position: absolute;
             display: none;
@@ -404,6 +431,27 @@
             width: 10px;
             height: 1px;
             background: rgba(200,200,200,0.5);
+            flex-shrink: 0;
+        }
+        .planet-label {
+            position: absolute;
+            pointer-events: none;
+            color: rgba(255, 255, 255, 0.9);
+            font-family: sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transform: translateY(-50%);
+        }
+        .planet-label-line {
+            width: 12px;
+            height: 1px;
+            background: rgba(255,255,255,0.6);
             flex-shrink: 0;
         }
         #tooltip {
@@ -583,6 +631,8 @@
     <div id="tooltip"></div>
     <div id="galaxy-info"></div>
     <div id="moon-labels"></div>
+    <div id="planet-labels"></div>
+    <button id="zoom-out-btn">&#8617; Full Solar System</button>
     <div id="flyby-panel">
         <img id="flyby-img" src="" alt="">
         <button id="flyby-close">&#x2715;</button>
@@ -1407,104 +1457,13 @@
 
         // Planet texture generators
         const textures = {
-            mercury: canvasTex((ctx, s) => {
-                ctx.fillStyle = '#8a8a8a'; ctx.fillRect(0, 0, s, s);
-                for (let i = 0; i < 100; i++) {
-                    ctx.fillStyle = `rgba(50,50,50,${Math.random()*0.5+0.2})`;
-                    ctx.beginPath();
-                    ctx.arc(Math.random()*s, Math.random()*s, Math.random()*10+1, 0, Math.PI*2);
-                    ctx.fill();
-                }
-            }),
-            venus: canvasTex((ctx, s) => {
-                const g = ctx.createLinearGradient(0, 0, 0, s);
-                g.addColorStop(0, '#e8c060'); g.addColorStop(0.5, '#daa030'); g.addColorStop(1, '#c07820');
-                ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
-                for (let i = 0; i < 15; i++) {
-                    ctx.strokeStyle = `rgba(255,220,100,${Math.random()*0.3+0.1})`;
-                    ctx.lineWidth = 6;
-                    ctx.beginPath();
-                    ctx.arc(Math.random()*s, Math.random()*s, Math.random()*80+30, 0, Math.PI*1.5);
-                    ctx.stroke();
-                }
-            }),
-            mars: canvasTex((ctx, s) => {
-                const g = ctx.createLinearGradient(0, 0, s, s);
-                g.addColorStop(0, '#b84010'); g.addColorStop(0.5, '#d05828'); g.addColorStop(1, '#9a3000');
-                ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
-                for (let i = 0; i < 60; i++) {
-                    ctx.fillStyle = `rgba(70,15,0,${Math.random()*0.4+0.1})`;
-                    ctx.beginPath();
-                    ctx.arc(Math.random()*s, Math.random()*s, Math.random()*14+2, 0, Math.PI*2);
-                    ctx.fill();
-                }
-                ctx.fillStyle = 'rgba(220,200,180,0.85)';
-                ctx.fillRect(0, 0, s, s*0.06);
-                ctx.fillRect(0, s*0.94, s, s*0.06);
-            }),
-            jupiter: canvasTex((ctx, s) => {
-                const bands = ['#c8a060','#ddb870','#e8cc80','#b07840','#c89060','#d4a870','#e0c090','#c09060'];
-                bands.forEach((c, i) => {
-                    ctx.fillStyle = c;
-                    ctx.fillRect(0, i*(s/bands.length), s, s/bands.length+1);
-                });
-                for (let i = 0; i < bands.length; i++) {
-                    ctx.strokeStyle = `rgba(100,60,20,0.25)`;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    for (let x = 0; x <= s; x += 4) {
-                        const y = (i+0.5)*(s/bands.length) + Math.sin(x*0.05+i)*6;
-                        x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-                    }
-                    ctx.stroke();
-                }
-                ctx.fillStyle = 'rgba(160,55,35,0.75)';
-                ctx.beginPath();
-                ctx.ellipse(s*0.62, s*0.58, 45, 28, 0, 0, Math.PI*2);
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(200,100,60,0.5)';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.ellipse(s*0.62, s*0.58, 55, 35, 0, 0, Math.PI*2);
-                ctx.stroke();
-            }, 1024),
-            saturn: canvasTex((ctx, s) => {
-                const bands = ['#e8d498','#f0e0a8','#d8c078','#e4cc90','#f0d8a0','#e0c888'];
-                bands.forEach((c, i) => {
-                    ctx.fillStyle = c;
-                    ctx.fillRect(0, i*(s/bands.length), s, s/bands.length+1);
-                });
-            }),
-            uranus: canvasTex((ctx, s) => {
-                const g = ctx.createLinearGradient(0, 0, 0, s);
-                g.addColorStop(0, '#a8f0f8'); g.addColorStop(0.3, '#60d8ec'); g.addColorStop(0.7, '#40c8e0'); g.addColorStop(1, '#28a8c0');
-                ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
-                // Subtle banding
-                for (let i = 0; i < 6; i++) {
-                    ctx.fillStyle = `rgba(180,240,255,${0.05 + i*0.02})`;
-                    ctx.fillRect(0, s*(0.1+i*0.14), s, s*0.05);
-                }
-            }),
-            neptune: canvasTex((ctx, s) => {
-                const g = ctx.createLinearGradient(0, 0, 0, s);
-                g.addColorStop(0, '#1850b0'); g.addColorStop(0.4, '#2060c8'); g.addColorStop(0.7, '#3070d8'); g.addColorStop(1, '#0830a0');
-                ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
-                // Bands
-                for (let i = 0; i < 4; i++) {
-                    ctx.fillStyle = `rgba(80,120,255,0.15)`;
-                    ctx.fillRect(0, s*(0.15+i*0.2), s, s*0.07);
-                }
-                // Great Dark Spot
-                ctx.fillStyle = 'rgba(10,10,100,0.7)';
-                ctx.beginPath();
-                ctx.ellipse(s*0.38, s*0.45, 38, 22, -0.2, 0, Math.PI*2);
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(60,80,200,0.5)';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.ellipse(s*0.38, s*0.45, 50, 30, -0.2, 0, Math.PI*2);
-                ctx.stroke();
-            }),
+            mercury: textureLoader.load('textures/2k_mercury.jpg'),
+            venus:   textureLoader.load('textures/2k_venus_atmosphere.jpg'),
+            mars:    textureLoader.load('textures/2k_mars.jpg'),
+            jupiter: textureLoader.load('textures/2k_jupiter.jpg'),
+            saturn:  textureLoader.load('textures/2k_saturn.jpg'),
+            uranus:  textureLoader.load('textures/2k_uranus.jpg'),
+            neptune: textureLoader.load('textures/2k_neptune.jpg'),
             saturnRing: canvasTex((ctx, s) => {
                 // RingGeometry UV: V goes from inner to outer edge (top to bottom in texture)
                 for (let y = 0; y < s; y++) {
@@ -1575,12 +1534,22 @@
         const planets = [];
         const moonLabelData = []; // { mesh, labelEl, planetMesh }
         const moonLabelsContainer = document.getElementById('moon-labels');
+        const planetLabelData = []; // { mesh, labelEl, size }
+        const planetLabelsContainer = document.getElementById('planet-labels');
 
         function createMoonLabel(name) {
             const el = document.createElement('div');
             el.className = 'moon-label';
             el.innerHTML = `<span class="moon-label-line"></span><span>${name}</span>`;
             moonLabelsContainer.appendChild(el);
+            return el;
+        }
+
+        function createPlanetLabel(name) {
+            const el = document.createElement('div');
+            el.className = 'planet-label';
+            el.innerHTML = `<span class="planet-label-line"></span><span>${name}</span>`;
+            planetLabelsContainer.appendChild(el);
             return el;
         }
 
@@ -1694,7 +1663,11 @@
             };
         }
 
-        planetsData.forEach(d => planets.push(createPlanet(d)));
+        planetsData.forEach((d, i) => {
+            const p = createPlanet(d);
+            planets.push(p);
+            planetLabelData.push({ mesh: p.mesh, labelEl: createPlanetLabel(d.name), size: d.size });
+        });
 
         // ── Scale: real AU → visual scene units (matches compressed planet visual distances) ──
         // Planets use hand-picked visual distances (not linear AU) for a good default view.
@@ -2653,6 +2626,11 @@
             fromTarget: new THREE.Vector3(), toTarget: new THREE.Vector3(),
             targetPlanet: null };
 
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const solarSystemHomePos = new THREE.Vector3(0, 55, 110);
+        const solarSystemHomeTarget = new THREE.Vector3(0, 0, 0);
+        let zoomedToPlanet = false;
+
         function focusPlanet(planetName) {
             const planet = planets.find(p => p.name.toLowerCase() === planetName.toLowerCase());
             if (!planet) return;
@@ -2666,7 +2644,24 @@
             planetFlyState.active = true;
             planetFlyState.targetPlanet = planet;
             controls.enabled = false;
+            zoomedToPlanet = true;
+            zoomOutBtn.style.display = 'block';
         }
+
+        function zoomToFullSolarSystem() {
+            planetFlyState.fromPos.copy(camera.position);
+            planetFlyState.fromTarget.copy(controls.target);
+            planetFlyState.toPos.copy(solarSystemHomePos);
+            planetFlyState.toTarget.copy(solarSystemHomeTarget);
+            planetFlyState.startTime = performance.now();
+            planetFlyState.active = true;
+            planetFlyState.targetPlanet = null;
+            controls.enabled = false;
+            zoomedToPlanet = false;
+            zoomOutBtn.style.display = 'none';
+        }
+
+        zoomOutBtn.addEventListener('click', zoomToFullSolarSystem);
 
         // Planet legend click → zoom to planet
         document.querySelectorAll('.legend-planet').forEach(el => {
@@ -2875,16 +2870,39 @@
             controls.update();
             composer.render();
 
-            // Update moon labels — project 3D position to screen
+            // Update planet and moon labels
             const W = window.innerWidth, H = window.innerHeight;
-            const camDist = camera.position.length();
+
+            // Planet labels
+            for (const ld of planetLabelData) {
+                const pos = ld.mesh.position.clone().project(camera);
+                const inFront = pos.z < 1.0;
+                // Compute apparent screen size of planet in pixels
+                const dist = camera.position.distanceTo(ld.mesh.position);
+                const fovRad = camera.fov * Math.PI / 180;
+                const screenH = H / (2 * Math.tan(fovRad / 2));
+                const apparentPx = (ld.size / dist) * screenH * 2;
+                // Hide when very close (zoomed in past planet) or off screen
+                const visible = inFront && apparentPx < H * 0.8 && apparentPx > 2;
+                if (!visible) { ld.labelEl.style.display = 'none'; continue; }
+                ld.labelEl.style.display = 'flex';
+                ld.labelEl.style.left = ((pos.x * 0.5 + 0.5) * W + apparentPx * 0.5 + 6) + 'px';
+                ld.labelEl.style.top  = ((-pos.y * 0.5 + 0.5) * H) + 'px';
+            }
+
+            // Moon labels — hide when moon < 10px apparent size
             for (const ld of moonLabelData) {
                 const pos = ld.mesh.position.clone().project(camera);
                 const inFront = pos.z < 1.0;
-                // Distance-based visibility: hide labels when zoomed far out
                 const distToPlanet = camera.position.distanceTo(ld.planetMesh.position);
-                const visible = inFront && distToPlanet < 60;
-                if (!visible) { ld.labelEl.style.display = 'none'; continue; }
+                if (!inFront || distToPlanet > 60) { ld.labelEl.style.display = 'none'; continue; }
+                // Check apparent moon size
+                const distToMoon = camera.position.distanceTo(ld.mesh.position);
+                const fovRad = camera.fov * Math.PI / 180;
+                const screenH = H / (2 * Math.tan(fovRad / 2));
+                const moonR = ld.mesh.geometry.parameters?.radius ?? 0.2;
+                const apparentPx = (moonR / distToMoon) * screenH * 2;
+                if (apparentPx < 10) { ld.labelEl.style.display = 'none'; continue; }
                 ld.labelEl.style.display = 'flex';
                 ld.labelEl.style.left = ((pos.x * 0.5 + 0.5) * W + 6) + 'px';
                 ld.labelEl.style.top  = ((-pos.y * 0.5 + 0.5) * H) + 'px';
