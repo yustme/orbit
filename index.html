@@ -609,9 +609,8 @@
                 max-width: none;
                 padding: 10px 14px;
                 font-size: 0.75em;
-            }
-            #galaxy-info .ginfo-fact {
-                display: none;
+                max-height: 45vh;
+                overflow-y: auto;
             }
         }
 
@@ -920,33 +919,71 @@
 
         solarSystemGroup.add(sun);
 
-        // Solar flares — animated sprites at the sun's limb
-        const flareTex = canvasTex((ctx, s) => {
-            const g = ctx.createRadialGradient(s/2, s*0.9, s*0.05, s/2, s*0.5, s*0.5);
-            g.addColorStop(0,   'rgba(255,230,100,1)');
-            g.addColorStop(0.25,'rgba(255,130,20,0.6)');
-            g.addColorStop(0.6, 'rgba(255,60,0,0.2)');
-            g.addColorStop(1,   'rgba(0,0,0,0)');
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, s, s);
-        }, 128);
-        const flares = [];
-        const FLARE_COUNT = 9;
-        for (let i = 0; i < FLARE_COUNT; i++) {
-            const mat = new THREE.SpriteMaterial({
-                map: flareTex, blending: THREE.AdditiveBlending,
-                transparent: true, depthWrite: false
-            });
-            const sprite = new THREE.Sprite(mat);
-            sprite.userData = {
-                baseAngle: (i / FLARE_COUNT) * Math.PI * 2,
-                phase:     Math.random() * Math.PI * 2,
-                speed:     0.25 + Math.random() * 0.5,
-                driftRate: (Math.random() - 0.5) * 0.008,
-            };
-            flares.push(sprite);
-            solarSystemGroup.add(sprite);
-        }
+        // Corona sphere — animated eruptions visible only at the sun's limb
+        const coronaMat = new THREE.ShaderMaterial({
+            uniforms: { time: { value: 0.0 } },
+            transparent: true,
+            depthWrite: false,
+            side: THREE.FrontSide,
+            blending: THREE.AdditiveBlending,
+            vertexShader: `
+                varying vec3 vNormal;
+                varying vec3 vWorldNormal;
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    vNormal = normalize(normalMatrix * normal);
+                    vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                varying vec3 vNormal;
+                varying vec2 vUv;
+
+                float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+                float noise(vec2 p) {
+                    vec2 i=floor(p), f=fract(p);
+                    f=f*f*(3.0-2.0*f);
+                    return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                               mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
+                }
+                float fbm(vec2 p){
+                    float v=0.0,a=0.5;
+                    for(int i=0;i<5;i++){v+=a*noise(p);p*=2.2;a*=0.5;}
+                    return v;
+                }
+
+                void main() {
+                    // Limb factor: 1 at edge, 0 at center
+                    vec3 viewDir = vec3(0,0,1);
+                    float cosA = abs(dot(normalize(vNormal), viewDir));
+                    float limb = 1.0 - cosA;
+                    float limbMask = pow(limb, 1.8);
+
+                    // Animated plasma eruptions on the limb
+                    vec2 uv = vUv * 5.0;
+                    float n = fbm(uv + vec2(time * 0.12, time * 0.07));
+                    float n2 = fbm(uv * 1.4 - vec2(time * 0.09, time * 0.05) + n);
+                    float eruption = pow(max(0.0, n2 - 0.3), 2.0) * 3.0;
+
+                    // Bright spikes / prominences
+                    float spike = pow(max(0.0, fbm(uv * 3.0 + vec2(time*0.15)) - 0.45), 3.0) * 6.0;
+
+                    float total = (eruption + spike) * limbMask;
+
+                    vec3 hotCol  = vec3(1.0, 0.85, 0.3);
+                    vec3 coolCol = vec3(1.0, 0.3, 0.0);
+                    vec3 col = mix(coolCol, hotCol, clamp(total, 0.0, 1.0));
+
+                    float alpha = clamp(total * 0.75, 0.0, 0.85);
+                    gl_FragColor = vec4(col * alpha, alpha);
+                }
+            `
+        });
+        const corona = new THREE.Mesh(new THREE.SphereGeometry(5.25, 96, 96), coronaMat);
+        solarSystemGroup.add(corona);
 
         // Sun glow sprite
         const glowTex = canvasTex((ctx, s) => {
@@ -1200,7 +1237,7 @@
             'Whirlpool (M51)':   { type: 'Grand Design Spiral (Sbc)',   distance: '23 million ly',    diameter: '76,000 ly',  stars: '~100 billion',  fact: 'First galaxy classified as a spiral (1845). Companion NGC 5195 is distorting its arms through tidal forces.' },
             'M87':               { type: 'Giant Elliptical (E0pec)',    distance: '53.5 million ly',  diameter: '240,000 ly', stars: '~1 trillion',   fact: 'Home of the first black hole ever photographed (2019, Event Horizon Telescope). Its plasma jet extends 5,000 light-years.' },
             'Sculptor (NGC253)': { type: 'Intermediate Spiral (SABc)',  distance: '11.4 million ly',  diameter: '90,000 ly',  stars: '~200 billion',  fact: 'One of the brightest galaxies visible from Earth. An intense starburst galaxy forming new stars at a remarkable rate.' },
-            'Keboola':           { type: 'Data Nebula (orchestration class)', distance: '∞ possibilities', diameter: 'scales with your ambition', stars: 'every dataset ever moved', fact: 'A galaxy born from the belief that data should work for people, not the other way around. Its core pulses with orchestrated pipelines connecting thousands of sources. The blue arms carry transformed data outward — turning raw signals into decisions, and decisions into impact.' },
+            'Keboola':           { type: 'Data Nebula (orchestration class)', distance: '∞ AU from your deadline', diameter: 'expands with every new use case', stars: 'one per pipeline run (we counted)', fact: 'Scientists once tried to map this galaxy\'s data flows. They ran out of whiteboards. Its core emits a faint hum that sounds suspiciously like a Slack notification. Locals claim the spiral arms are actually ETL pipelines — nobody has reached the edge, but the docs say it\'s just two more clicks away.' },
         };
 
         // Seeded PRNG (mulberry32)
@@ -3026,24 +3063,7 @@
             sun.rotation.y += 0.0005;
             const st = performance.now() * 0.001;
             sunMat.uniforms.time.value = st;
-
-            // Animate solar flares
-            for (const fl of flares) {
-                const u = fl.userData;
-                u.baseAngle += u.driftRate;
-                const pulse = Math.sin(st * u.speed + u.phase);
-                const burst = Math.max(0, Math.sin(st * u.speed * 0.4 + u.phase * 1.3));
-                const h = 1.2 + pulse * 0.6 + burst * burst * 2.5;
-                const w = 0.6 + burst * 0.5;
-                const op = 0.25 + pulse * 0.15 + burst * burst * 0.5;
-                fl.position.set(
-                    Math.cos(u.baseAngle) * (5.0 + h * 0.4),
-                    Math.sin(u.baseAngle) * (5.0 + h * 0.4),
-                    0
-                );
-                fl.scale.set(w, h, 1);
-                fl.material.opacity = Math.max(0, Math.min(1, op));
-            }
+            coronaMat.uniforms.time.value = st;
             const pulse = 1 + Math.sin(time * 1.5) * 0.04;
             glow.scale.set(18 * pulse, 18 * pulse, 1);
 
