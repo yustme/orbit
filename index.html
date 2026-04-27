@@ -266,6 +266,19 @@
             white-space: nowrap;
         }
         #zoom-out-btn:hover { background: rgba(20,50,90,0.85); border-color: rgba(100,180,255,0.6); }
+        #reset-btn {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.25);
+            color: rgba(255,255,255,0.6);
+            border-radius: 4px;
+            width: 30px; height: 30px;
+            cursor: pointer;
+            font-size: 1em;
+            padding: 0;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        #reset-btn:hover { border-color: rgba(255,255,255,0.6); color: #fff; }
         #planet-labels {
             position: absolute;
             top: 0; left: 0;
@@ -689,6 +702,7 @@
     </div>
 
     <div id="time-controls">
+        <button id="reset-btn" title="Reset to default">&#8634;</button>
         <button id="play-btn">&#9654;</button>
         <div id="slider-wrap">
             <div id="photo-markers"></div>
@@ -3009,6 +3023,53 @@
 
         zoomOutBtn.addEventListener('click', showFullSolarSystem);
         document.getElementById('back-btn').addEventListener('click', showFullSolarSystem);
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            // Stop galaxy view if active
+            if (flyState.inGalaxyView) {
+                solarIndicator.visible = false;
+                solarLabelEl.style.display = 'none';
+                if (flyState.currentGalaxyIdx >= 0) galaxyModels[flyState.currentGalaxyIdx].visible = false;
+                document.getElementById('galaxy-info').style.display = 'none';
+                flyState.inGalaxyView = false;
+                flyState.currentGalaxyIdx = -1;
+                flyState.active = false;
+                flyState.solarScaleTarget = 1.0;
+                solarSystemGroup.scale.setScalar(1.0);
+                flyState._savedSimSpeed = undefined;
+                controls.maxDistance = 400;
+            }
+            // Reset simulation
+            simDay = MIN_DAY;
+            simSpeed = 0.02;
+            playing = true;
+            slider.min = MIN_DAY;
+            slider.max = MAX_DAY;
+            slider.value = MIN_DAY;
+            speedSel.value = '0.02';
+            playBtn.innerHTML = '&#9646;&#9646;';
+            syncUI();
+            // Deselect spacecraft
+            if (selectedSC) selectSpacecraft(selectedSC);
+            // Close panels
+            flybyPanel.style.display = 'none';
+            flybyVisible = false;
+            // Stop following
+            stopFollowingAll();
+            zoomedToPlanet = false;
+            zoomOutBtn.style.display = 'none';
+            document.getElementById('back-btn').style.display = 'none';
+            planetFlyState.onComplete = null;
+            // Fly camera home
+            planetFlyState.fromPos.copy(camera.position);
+            planetFlyState.fromTarget.copy(controls.target);
+            planetFlyState.toPos.copy(solarSystemHomePos);
+            planetFlyState.toTarget.copy(solarSystemHomeTarget);
+            planetFlyState.startTime = performance.now();
+            planetFlyState.active = true;
+            planetFlyState.targetPlanet = null;
+            controls.enabled = false;
+        });
 
         // Scroll zoom while following a spacecraft or moon
         window.addEventListener('wheel', (e) => {
