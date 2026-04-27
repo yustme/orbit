@@ -73,13 +73,13 @@
             margin-top: 8px;
             margin-bottom: 2px;
         }
-        .legend-galaxy {
+        .legend-galaxy, .legend-planet {
             pointer-events: all;
             cursor: pointer;
             opacity: 0.75;
             transition: opacity 0.15s;
         }
-        .legend-galaxy:hover {
+        .legend-galaxy:hover, .legend-planet:hover {
             opacity: 1;
             color: #aaddff;
         }
@@ -549,7 +549,7 @@
     <div id="info">
         <h1>3D Solar System</h1>
         <p class="desktop-hint">LMB: Rotate &nbsp;|&nbsp; Scroll: Zoom &nbsp;|&nbsp; RMB: Pan</p>
-        <p class="mobile-hint">1 prst: Rotace &nbsp;|&nbsp; 2 prsty: Zoom</p>
+        <p class="mobile-hint">1 finger: Rotate &nbsp;|&nbsp; 2 fingers: Zoom</p>
     </div>
 
     <a id="gallery-link" href="gallery.html">Photos &#8599;</a>
@@ -583,25 +583,29 @@
         </div>
         <div id="date-display">Apr 22, 2026</div>
         <select id="speed-select">
+            <option value="0.01">0.01 d/frame</option>
+            <option value="0.02" selected>0.02 d/frame</option>
             <option value="0.1">0.1 d/frame</option>
-            <option value="1" selected>1 d/frame</option>
+            <option value="0.5">0.5 d/frame</option>
+            <option value="1">1 d/frame</option>
             <option value="5">5 d/frame</option>
             <option value="10">10 d/frame</option>
             <option value="30">30 d/frame</option>
             <option value="100">100 d/frame</option>
+            <option value="365">365 d/frame</option>
         </select>
     </div>
 
     <div id="legend">
         <div class="legend-section">Planets</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#887766"></div>Mercury</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#ddaa55"></div>Venus</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#4488ff"></div>Earth</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#cc5533"></div>Mars</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#cc9944"></div>Jupiter</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#ddcc88"></div>Saturn</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#55ccdd"></div>Uranus</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#3366cc"></div>Neptune</div>
+        <div class="legend-item legend-planet" data-planet="Mercury"><div class="legend-dot" style="background:#887766"></div>Mercury</div>
+        <div class="legend-item legend-planet" data-planet="Venus"><div class="legend-dot" style="background:#ddaa55"></div>Venus</div>
+        <div class="legend-item legend-planet" data-planet="Earth"><div class="legend-dot" style="background:#4488ff"></div>Earth</div>
+        <div class="legend-item legend-planet" data-planet="Mars"><div class="legend-dot" style="background:#cc5533"></div>Mars</div>
+        <div class="legend-item legend-planet" data-planet="Jupiter"><div class="legend-dot" style="background:#cc9944"></div>Jupiter</div>
+        <div class="legend-item legend-planet" data-planet="Saturn"><div class="legend-dot" style="background:#ddcc88"></div>Saturn</div>
+        <div class="legend-item legend-planet" data-planet="Uranus"><div class="legend-dot" style="background:#55ccdd"></div>Uranus</div>
+        <div class="legend-item legend-planet" data-planet="Neptune"><div class="legend-dot" style="background:#3366cc"></div>Neptune</div>
         <div class="legend-section">Galaxies</div>
         <div id="galaxy-legend"></div>
         <div class="legend-section" style="margin-top:10px">Spacecraft</div>
@@ -630,7 +634,7 @@
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         const infoInstructions = document.querySelector('#info p');
         if (isTouchDevice && infoInstructions) {
-            infoInstructions.textContent = '1 prst: Rotace | 2 prsty: Zoom';
+            infoInstructions.textContent = '1 finger: Rotate | 2 fingers: Zoom';
         }
 
         // Scene
@@ -1272,6 +1276,10 @@
             if (!flyState.inGalaxyView) {
                 flyState._solarCamPos  = camera.position.clone();
                 flyState._solarCtrlTarget = controls.target.clone();
+                flyState._savedSimSpeed = simSpeed;
+                // Switch to 1 d/frame for galaxy view
+                simSpeed = 1;
+                speedSel.value = '1';
             }
             // Always capture current position as animation start
             flyState.savedCamPos.copy(camera.position);
@@ -1333,7 +1341,16 @@
             flyState.duration = 2800;
             flyState.solarScaleTarget = 1.0;
             controls.enabled = false;
-            flyState.onComplete = () => { controls.maxDistance = 400; controls.enabled = true; };
+            flyState.onComplete = () => {
+                controls.maxDistance = 400;
+                controls.enabled = true;
+                // Restore sim speed from before galaxy view
+                if (flyState._savedSimSpeed !== undefined) {
+                    simSpeed = flyState._savedSimSpeed;
+                    speedSel.value = String(flyState._savedSimSpeed);
+                    flyState._savedSimSpeed = undefined;
+                }
+            };
         }
 
         document.getElementById('back-btn').addEventListener('click', flyBack);
@@ -1485,8 +1502,18 @@
             { name: 'Mercury', tex: textures.mercury, size: 0.55, distance: 11,  e: 0.2056, inc: 7.00,  Omega:  48.331, omega:  29.125, period: 0.2408, tilt: 0.03,  roughness: 0.9, metalness: 0.1, orbitColor: 0x887766 },
             { name: 'Venus',   tex: textures.venus,   size: 1.05, distance: 17,  e: 0.0068, inc: 3.39,  Omega:  76.680, omega:  54.884, period: 0.6152, tilt: 3.10,  roughness: 0.6, metalness: 0,   orbitColor: 0xddaa55 },
             { name: 'Earth',   isEarth: true,          size: 1.15, distance: 24,  e: 0.0167, inc: 0.00,  Omega:   0.000, omega: 102.937, period: 1.0000, tilt: 0.41,                                  orbitColor: 0x4488ff },
-            { name: 'Mars',    tex: textures.mars,    size: 0.75, distance: 34,  e: 0.0934, inc: 1.85,  Omega:  49.558, omega: 286.502, period: 1.8808, tilt: 0.44,  roughness: 0.9, metalness: 0,   orbitColor: 0xcc5533 },
-            { name: 'Jupiter', tex: textures.jupiter, size: 3.4,  distance: 53,  e: 0.0489, inc: 1.30,  Omega: 100.464, omega:  14.331, period: 11.862, tilt: 0.05,  roughness: 0.7, metalness: 0,   orbitColor: 0xcc9944 },
+            { name: 'Mars',    tex: textures.mars,    size: 0.75, distance: 34,  e: 0.0934, inc: 1.85,  Omega:  49.558, omega: 286.502, period: 1.8808, tilt: 0.44,  roughness: 0.9, metalness: 0,   orbitColor: 0xcc5533,
+              moons: [
+                { name: 'Phobos', period: 0.3189, dist: 1.05, size: 0.06, color: 0x887766 },
+                { name: 'Deimos', period: 1.2624, dist: 1.65, size: 0.05, color: 0x998877 },
+              ]},
+            { name: 'Jupiter', tex: textures.jupiter, size: 3.4,  distance: 53,  e: 0.0489, inc: 1.30,  Omega: 100.464, omega:  14.331, period: 11.862, tilt: 0.05,  roughness: 0.7, metalness: 0,   orbitColor: 0xcc9944,
+              moons: [
+                { name: 'Io',       period: 1.769,  dist: 5.5,  size: 0.22, color: 0xddaa22 },
+                { name: 'Europa',   period: 3.551,  dist: 7.2,  size: 0.19, color: 0xddccbb },
+                { name: 'Ganymede', period: 7.155,  dist: 9.5,  size: 0.27, color: 0x998877 },
+                { name: 'Callisto', period: 16.689, dist: 13.0, size: 0.24, color: 0x554433 },
+              ]},
             { name: 'Saturn',  tex: textures.saturn,  size: 2.9,  distance: 72,  e: 0.0565, inc: 2.49,  Omega: 113.665, omega:  93.058, period: 29.457, tilt: 0.47,  roughness: 0.7, metalness: 0,   hasRing: true, orbitColor: 0xddcc88 },
             { name: 'Uranus',  tex: textures.uranus,  size: 1.9,  distance: 88,  e: 0.0463, inc: 0.77,  Omega:  74.006, omega: 173.005, period: 84.011, tilt: 1.71,  roughness: 0.3, metalness: 0,   icy: true, orbitColor: 0x55ccdd },
             { name: 'Neptune', tex: textures.neptune, size: 1.8,  distance: 105, e: 0.0097, inc: 1.77,  Omega: 131.784, omega:  48.123, period: 164.79, tilt: 0.49,  roughness: 0.3, metalness: 0,   icy: true, orbitColor: 0x3366cc }
@@ -1567,6 +1594,17 @@
                 mesh.userData.moonAngle = Math.random() * Math.PI * 2;
             }
 
+            if (d.moons) {
+                mesh.userData.moons = d.moons.map(m => {
+                    const moonMesh = new THREE.Mesh(
+                        new THREE.SphereGeometry(m.size, 16, 16),
+                        new THREE.MeshStandardMaterial({ color: m.color, roughness: 0.9 })
+                    );
+                    solarSystemGroup.add(moonMesh);
+                    return { mesh: moonMesh, period: m.period, dist: m.dist };
+                });
+            }
+
             if (d.hasRing) {
                 const ringMat = new THREE.MeshBasicMaterial({
                     map: textures.saturnRing, side: THREE.DoubleSide,
@@ -1579,7 +1617,7 @@
 
             solarSystemGroup.add(mesh);
             return {
-                mesh, name: d.name, a, b, c, e: d.e, incRad,
+                mesh, name: d.name, size: d.size, a, b, c, e: d.e, incRad,
                 Omega: d.Omega || 0, omega: d.omega || 0, inc: d.inc || 0,
                 speed: BASE_SPEED / d.period,
                 angle: Math.random() * Math.PI * 2,
@@ -1667,9 +1705,9 @@
         const MIN_DAY   = -10225; // 1972-03-04 (Pioneer 10)
         const MAX_DAY   = Math.ceil(TODAY_DAY);
 
-        let simDay   = TODAY_DAY;
-        let playing  = false;
-        let simSpeed = 1; // days per frame
+        let simDay   = MIN_DAY;
+        let playing  = true;
+        let simSpeed = 0.02; // days per frame
 
         function daysToDate(d) {
             return new Date(J2000_MS + d * 86400000).toLocaleDateString('en-US', {
@@ -1682,7 +1720,8 @@
         const playBtn  = document.getElementById('play-btn');
         const speedSel = document.getElementById('speed-select');
 
-        slider.min = MIN_DAY; slider.max = MAX_DAY; slider.value = MAX_DAY;
+        slider.min = MIN_DAY; slider.max = MAX_DAY; slider.value = MIN_DAY;
+        playBtn.innerHTML = '&#9646;&#9646;';
 
         function syncUI() {
             dateLbl.textContent = daysToDate(simDay);
@@ -2541,7 +2580,8 @@
         // ── Focus camera on a planet by name ─────────────────────────────────────
         const planetFlyState = { active: false, startTime: 0, duration: 1400,
             fromPos: new THREE.Vector3(), toPos: new THREE.Vector3(),
-            fromTarget: new THREE.Vector3(), toTarget: new THREE.Vector3() };
+            fromTarget: new THREE.Vector3(), toTarget: new THREE.Vector3(),
+            targetPlanet: null };
 
         function focusPlanet(planetName) {
             const planet = planets.find(p => p.name.toLowerCase() === planetName.toLowerCase());
@@ -2554,23 +2594,38 @@
             planetFlyState.toPos.copy(worldPos).add(new THREE.Vector3(offset, offset * 0.5, offset));
             planetFlyState.startTime = performance.now();
             planetFlyState.active = true;
+            planetFlyState.targetPlanet = planet;
             controls.enabled = false;
         }
+
+        // Planet legend click → zoom to planet
+        document.querySelectorAll('.legend-planet').forEach(el => {
+            el.addEventListener('click', () => {
+                const name = el.dataset.planet;
+                focusPlanet(name);
+                // Close the mobile menu
+                document.getElementById('legend').classList.remove('legend-mobile-open');
+            });
+        });
 
         function setFlybyTitle(titleEl, label, planetName) {
             titleEl.innerHTML = '';
             const span = document.createElement('span');
             span.className = 'fp-planet-link';
             span.textContent = label;
-            span.title = 'Zaměřit kameru na ' + planetName;
+            span.title = 'Focus camera on ' + planetName;
             span.addEventListener('click', () => focusPlanet(planetName));
             titleEl.appendChild(span);
         }
 
-        // Animation
+        // Animation — capped at 25fps
         let time = 0;
-        function animate() {
+        const TARGET_INTERVAL = 1000 / 25;
+        let lastFrameTime = 0;
+        function animate(now) {
             requestAnimationFrame(animate);
+            if (now - lastFrameTime < TARGET_INTERVAL) return;
+            lastFrameTime = now;
             time += 0.01;
 
             sun.rotation.y += 0.0015;
@@ -2600,19 +2655,36 @@
                 const pos = orbitalToScene(px, pzF, kep.Omega, p.inc, kep.omega, 1);
                 p.mesh.position.copy(pos);
                 if (playing) {
-                    p.mesh.rotation.y += 0.008;
-                    if (p.mesh.userData.clouds) {
-                        p.mesh.userData.clouds.rotation.y += 0.002;
-                    }
-                    if (p.mesh.userData.moon) {
-                        p.mesh.userData.moonAngle += 0.025;
-                        const ma = p.mesh.userData.moonAngle;
+                    if (p.name === 'Earth') {
+                        // Earth self-rotation: 1 sidereal day = 0.9973 Earth days
+                        p.mesh.rotation.y += (2 * Math.PI / 0.9973) * simSpeed;
+                        if (p.mesh.userData.clouds) {
+                            // Clouds rotate slightly faster than surface
+                            p.mesh.userData.clouds.rotation.y += (2 * Math.PI / 0.95) * simSpeed;
+                        }
+                        // Moon orbital period: 27.322 days — derive angle from simDay for accuracy
+                        const moonOrbitalPeriod = 27.322;
+                        const ma = (simDay / moonOrbitalPeriod) * 2 * Math.PI;
+                        p.mesh.userData.moonAngle = ma;
                         p.mesh.userData.moon.position.set(
                             p.mesh.position.x + Math.cos(ma) * 2.2,
                             p.mesh.position.y + Math.sin(ma) * 0.4,
                             p.mesh.position.z + Math.sin(ma) * 2.2
                         );
-                        p.mesh.userData.moon.rotation.y += 0.005;
+                        // Tidally locked: Moon rotates once per orbit (same face toward Earth)
+                        p.mesh.userData.moon.rotation.y = -ma;
+                    } else {
+                        p.mesh.rotation.y += 0.008;
+                    }
+                    if (p.mesh.userData.moons) {
+                        for (const m of p.mesh.userData.moons) {
+                            const ma = (simDay / m.period) * 2 * Math.PI;
+                            m.mesh.position.set(
+                                p.mesh.position.x + Math.cos(ma) * m.dist,
+                                p.mesh.position.y,
+                                p.mesh.position.z + Math.sin(ma) * m.dist
+                            );
+                        }
                     }
                 }
             }
@@ -2657,10 +2729,18 @@
                 const elapsed = performance.now() - planetFlyState.startTime;
                 const t = Math.min(elapsed / planetFlyState.duration, 1.0);
                 const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+                // Track planet live so camera follows even if simulation is running
+                if (planetFlyState.targetPlanet) {
+                    const livePos = planetFlyState.targetPlanet.mesh.position;
+                    const off = planetFlyState.targetPlanet.size * 6;
+                    planetFlyState.toTarget.copy(livePos);
+                    planetFlyState.toPos.copy(livePos).add(new THREE.Vector3(off, off * 0.5, off));
+                }
                 camera.position.lerpVectors(planetFlyState.fromPos, planetFlyState.toPos, ease);
                 controls.target.lerpVectors(planetFlyState.fromTarget, planetFlyState.toTarget, ease);
                 if (t >= 1.0) {
                     planetFlyState.active = false;
+                    planetFlyState.targetPlanet = null;
                     controls.enabled = true;
                 }
             }
