@@ -826,30 +826,72 @@
             return new THREE.CanvasTexture(c);
         }
 
-        // Sun texture
-        const sunTex = canvasTex((ctx, s) => {
-            const g = ctx.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/2);
-            g.addColorStop(0,   '#fffde0');
-            g.addColorStop(0.2, '#ffe066');
-            g.addColorStop(0.5, '#ff9900');
-            g.addColorStop(0.8, '#e05000');
-            g.addColorStop(1,   '#992200');
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, s, s);
-            for (let i = 0; i < 300; i++) {
-                const x = Math.random() * s, y = Math.random() * s;
-                const r = Math.random() * 25 + 5;
-                ctx.fillStyle = `rgba(255,240,100,${Math.random() * 0.25})`;
-                ctx.beginPath();
-                ctx.arc(x, y, r, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }, 1024);
+        // Sun — animated plasma shader with limb darkening
+        const sunMat = new THREE.ShaderMaterial({
+            uniforms: { time: { value: 0.0 } },
+            vertexShader: `
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                void main() {
+                    vUv = uv;
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                varying vec2 vUv;
+                varying vec3 vNormal;
 
-        const sun = new THREE.Mesh(
-            new THREE.SphereGeometry(5, 64, 64),
-            new THREE.MeshBasicMaterial({ map: sunTex })
-        );
+                float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+                float noise(vec2 p) {
+                    vec2 i = floor(p), f = fract(p);
+                    f = f*f*(3.0-2.0*f);
+                    return mix(mix(hash(i), hash(i+vec2(1,0)),f.x),
+                               mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)),f.x), f.y);
+                }
+                float fbm(vec2 p) {
+                    float v=0.0, a=0.5;
+                    for(int i=0;i<6;i++){v+=a*noise(p);p*=2.1;a*=0.5;}
+                    return v;
+                }
+
+                void main() {
+                    // Animated plasma turbulence
+                    vec2 uv = vUv * 3.5;
+                    float n  = fbm(uv + vec2(time*0.07,  time*0.04));
+                    float n2 = fbm(uv * 1.6 - vec2(time*0.05, time*0.03) + n * 0.8);
+                    float n3 = fbm(uv * 0.8 + vec2(time*0.03, -time*0.06) + n2 * 0.5);
+                    float plasma = n2 * 0.5 + n3 * 0.5;
+
+                    // Granulation cells
+                    float gran = fbm(vUv * 18.0 + vec2(time*0.02, 0.0));
+
+                    // Color: bright white-yellow core → orange → deep red at limb
+                    vec3 c0 = vec3(1.00, 0.98, 0.82); // bright
+                    vec3 c1 = vec3(1.00, 0.70, 0.10); // orange
+                    vec3 c2 = vec3(0.80, 0.20, 0.01); // red-orange
+                    vec3 c3 = vec3(0.35, 0.05, 0.00); // deep red
+
+                    float t = clamp(plasma, 0.0, 1.0);
+                    vec3 col = mix(c3, c2, t);
+                    col = mix(col, c1, t * t);
+                    col = mix(col, c0, pow(t, 4.0));
+
+                    // Granulation bump
+                    col += vec3(0.12, 0.06, 0.0) * gran * gran;
+
+                    // Limb darkening — physically correct power law
+                    float cosTheta = max(dot(normalize(vNormal), vec3(0,0,1)), 0.0);
+                    float limb = 0.3 + 0.7 * pow(cosTheta, 0.5);
+                    col *= limb;
+
+                    gl_FragColor = vec4(col, 1.0);
+                }
+            `
+        });
+        const sun = new THREE.Mesh(new THREE.SphereGeometry(5, 96, 96), sunMat);
+
         const solarSystemGroup = new THREE.Group();
         scene.add(solarSystemGroup);
 
@@ -877,6 +919,34 @@
         const solarLabelEl  = solarMarkerEl; // alias for show/hide calls below
 
         solarSystemGroup.add(sun);
+
+        // Solar flares — animated sprites at the sun's limb
+        const flareTex = canvasTex((ctx, s) => {
+            const g = ctx.createRadialGradient(s/2, s*0.9, s*0.05, s/2, s*0.5, s*0.5);
+            g.addColorStop(0,   'rgba(255,230,100,1)');
+            g.addColorStop(0.25,'rgba(255,130,20,0.6)');
+            g.addColorStop(0.6, 'rgba(255,60,0,0.2)');
+            g.addColorStop(1,   'rgba(0,0,0,0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, s, s);
+        }, 128);
+        const flares = [];
+        const FLARE_COUNT = 9;
+        for (let i = 0; i < FLARE_COUNT; i++) {
+            const mat = new THREE.SpriteMaterial({
+                map: flareTex, blending: THREE.AdditiveBlending,
+                transparent: true, depthWrite: false
+            });
+            const sprite = new THREE.Sprite(mat);
+            sprite.userData = {
+                baseAngle: (i / FLARE_COUNT) * Math.PI * 2,
+                phase:     Math.random() * Math.PI * 2,
+                speed:     0.25 + Math.random() * 0.5,
+                driftRate: (Math.random() - 0.5) * 0.008,
+            };
+            flares.push(sprite);
+            solarSystemGroup.add(sprite);
+        }
 
         // Sun glow sprite
         const glowTex = canvasTex((ctx, s) => {
@@ -1594,8 +1664,8 @@
             const b  = a * Math.sqrt(1 - e * e);
             const c  = a * e;
             const pts = [];
-            for (let i = 0; i <= 256; i++) {
-                const θ  = (i / 256) * Math.PI * 2;
+            for (let i = 0; i <= 512; i++) {
+                const θ  = (i / 512) * Math.PI * 2;
                 const px = a * Math.cos(θ) - c;
                 const pz = b * Math.sin(θ);
                 pts.push(orbitalToScene(px, pz, OmegaDeg, incDeg, omegaDeg, 1));
@@ -2264,11 +2334,14 @@
                 const launchDay = effPts[0][0];
                 const endDay    = effPts[effPts.length - 1][0];
 
-                // Full trajectory line (visible when active, draw range clipped to simDay)
+                // Full trajectory line — smoothed with CatmullRom spline
                 // p = [t, hx, hy, hz] in Horizons ecliptic J2000 AU
                 const v3pts = effPts.map(p => auPtToScene(p[1], p[2], p[3]));
-                const lineGeo = new THREE.BufferGeometry().setFromPoints(v3pts);
-                lineGeo.setDrawRange(0, v3pts.length);
+                const scCurve = new THREE.CatmullRomCurve3(v3pts, false, 'catmullrom', 0.5);
+                const smoothN = Math.max(2000, v3pts.length * 8);
+                const smoothPts = scCurve.getPoints(smoothN - 1);
+                const lineGeo = new THREE.BufferGeometry().setFromPoints(smoothPts);
+                lineGeo.setDrawRange(0, smoothPts.length);
                 const line    = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({
                     color: sc.color, transparent: true, opacity: 0.22, depthWrite: false
                 }));
@@ -2431,7 +2504,7 @@
                 });
 
                 scObjects.push({ name: scName, color: sc.color, status: sc.status,
-                    points: effPts, v3pts, sprite, line, launchDay, endDay, milestones, endMarker, photoIcons });
+                    points: effPts, v3pts, sprite, line, launchDay, endDay, smoothN, milestones, endMarker, photoIcons });
             }
         }
 
@@ -2950,7 +3023,27 @@
             lastFrameTime = now;
             time += 0.01;
 
-            sun.rotation.y += 0.0015;
+            sun.rotation.y += 0.0005;
+            const st = performance.now() * 0.001;
+            sunMat.uniforms.time.value = st;
+
+            // Animate solar flares
+            for (const fl of flares) {
+                const u = fl.userData;
+                u.baseAngle += u.driftRate;
+                const pulse = Math.sin(st * u.speed + u.phase);
+                const burst = Math.max(0, Math.sin(st * u.speed * 0.4 + u.phase * 1.3));
+                const h = 1.2 + pulse * 0.6 + burst * burst * 2.5;
+                const w = 0.6 + burst * 0.5;
+                const op = 0.25 + pulse * 0.15 + burst * burst * 0.5;
+                fl.position.set(
+                    Math.cos(u.baseAngle) * (5.0 + h * 0.4),
+                    Math.sin(u.baseAngle) * (5.0 + h * 0.4),
+                    0
+                );
+                fl.scale.set(w, h, 1);
+                fl.material.opacity = Math.max(0, Math.min(1, op));
+            }
             const pulse = 1 + Math.sin(time * 1.5) * 0.04;
             glow.scale.set(18 * pulse, 18 * pulse, 1);
 
@@ -3022,12 +3115,9 @@
                         const pos = interpSC(sc.points, simDay);
                         if (pos) sc.sprite.position.copy(pos);
 
-                        // Clip trajectory line to current simDay
-                        const pts = sc.points;
-                        let hi = pts.length - 1;
-                        let lo = 0;
-                        while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m][0] <= simDay) lo = m; else hi = m; }
-                        sc.line.geometry.setDrawRange(0, lo + 2);
+                        // Clip smoothed trajectory line to current simDay using time fraction
+                        const fraction = Math.max(0, Math.min(1, (simDay - sc.launchDay) / (sc.endDay - sc.launchDay)));
+                        sc.line.geometry.setDrawRange(0, Math.floor(fraction * sc.smoothN) + 2);
                     }
                 }
             }
